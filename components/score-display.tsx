@@ -1,7 +1,6 @@
 'use client';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Progress } from '@/components/ui/progress';
 import { getScoreColor, getScoreLabel } from '@/lib/config';
 import { calculateGrade, getGradeColor } from '@/lib/types';
 
@@ -54,14 +53,15 @@ export function ScoreDisplay({ title, score, details }: ScoreDisplayProps) {
                     </span>
                   </div>
                 </div>
-                <Progress
-                  value={detail.score}
-                  className="h-2"
-                  style={{
-                    // @ts-expect-error - Custom CSS property for progress color
-                    '--progress-color': getScoreColor(detail.score),
-                  }}
-                />
+                <div className="h-2 w-full rounded-full bg-muted overflow-hidden">
+                  <div
+                    className="h-full transition-all duration-300"
+                    style={{ 
+                      width: `${detail.score}%`,
+                      backgroundColor: getScoreColor(detail.score) 
+                    }}
+                  />
+                </div>
               </div>
             ))}
           </div>
