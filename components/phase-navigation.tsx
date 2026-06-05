@@ -52,7 +52,7 @@ export function PhaseNavigation({
                 'flex flex-1 min-w-[140px] flex-col items-center gap-1 border-b-2 px-4 py-3 text-center transition-colors',
                 isActive
                   ? 'border-primary bg-primary/5 text-foreground'
-                  : 'border-transparent text-muted-foreground hover:border-border hover:bg-muted/50'
+                  : 'border-transparent text-muted-foreground hover:border-border hover:bg-muted/50 hover:cursor-pointer'
               )}
             >
               <div className="flex items-center gap-2">

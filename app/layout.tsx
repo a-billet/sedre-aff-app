@@ -3,10 +3,10 @@ import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import './globals.css'
 
-const inter = Inter({ subsets: ['latin'], variable: '--font-sans' })
+const inter = Inter({ subsets: ['latin'], variable: '--font-inter' })
 
 export const metadata: Metadata = {
-  title: 'FeasiScore - Etude de faisabilite fonciere',
+  title: 'SEDRE - Etude de faisabilite fonciere',
   description: 'Application d\'evaluation de faisabilite d\'operations foncieres avec analyse multicritere et bilan financier',
   generator: 'v0.app',
   icons: {

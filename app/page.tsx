@@ -21,7 +21,7 @@ export default function Page() {
   useEffect(() => {
     const loadedStudies = getStudies();
     setStudies(loadedStudies);
-    
+
     const currentId = getCurrentStudyId();
     if (currentId) {
       const study = getStudy(currentId);
@@ -135,7 +135,7 @@ export default function Page() {
           <div className="flex items-center gap-4">
             <button
               onClick={handleBackToList}
-              className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+              className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors hover:cursor-pointer"
             >
               <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
