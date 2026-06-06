@@ -81,24 +81,24 @@ export function Phase2Form({ data, onUpdate, landArea }: Phase2FormProps) {
     }
   };
 
-  const updatePotentiel = (key: keyof Phase2Data['potentiel'], value: string | number) => {
+  const updatePotentiel = (key: keyof Phase2Data['potentiel'], value: string | number | null) => {
     onUpdate({
       ...data,
-      potentiel: { ...data.potentiel, [key]: value },
+      potentiel: { ...data.potentiel, [key]: value ?? '' },
     });
   };
 
-  const updateMarche = (key: keyof Phase2Data['marche'], value: string | number) => {
+  const updateMarche = (key: keyof Phase2Data['marche'], value: string | number | null) => {
     onUpdate({
       ...data,
-      marche: { ...data.marche, [key]: value },
+      marche: { ...data.marche, [key]: value ?? '' },
     });
   };
 
-  const updateConcurrence = (key: keyof Phase2Data['concurrence'], value: string | number) => {
+  const updateConcurrence = (key: keyof Phase2Data['concurrence'], value: string | number | null) => {
     onUpdate({
       ...data,
-      concurrence: { ...data.concurrence, [key]: value },
+      concurrence: { ...data.concurrence, [key]: value ?? '' },
     });
   };
 

@@ -14,9 +14,9 @@ export interface ProjectInfo {
 // Phase 1: Analyse initiale
 export interface Phase1Data {
   // Zonage PLU
-  pluZone: 'UA' | 'UB' | 'UC' | 'AU' | 'A' | 'N' | '';
+  pluZone: "UA" | "UB" | "UC" | "AU" | "A" | "N" | "";
   pluZoneScore: number;
-  
+
   // Servitudes et contraintes
   servitudes: {
     patrimoine: boolean;
@@ -26,15 +26,15 @@ export interface Phase1Data {
     autres: string;
   };
   servitudesScore: number;
-  
+
   // Accessibilité
   accessibilite: {
-    transportEnCommun: 'excellent' | 'bon' | 'moyen' | 'faible' | '';
-    axesRoutiers: 'excellent' | 'bon' | 'moyen' | 'faible' | '';
-    stationnement: 'facile' | 'moyen' | 'difficile' | '';
+    transportEnCommun: "excellent" | "bon" | "moyen" | "faible" | "";
+    axesRoutiers: "excellent" | "bon" | "moyen" | "faible" | "";
+    stationnement: "facile" | "moyen" | "difficile" | "";
   };
   accessibiliteScore: number;
-  
+
   // Environnement immédiat
   environnement: {
     commerces: boolean;
@@ -44,7 +44,7 @@ export interface Phase1Data {
     nuisances: string;
   };
   environnementScore: number;
-  
+
   // Score global Phase 1
   globalScore: number;
   comments: string;
@@ -65,34 +65,34 @@ export interface Phase2Data {
     espacesVerts: number;
   };
   urbanismeScore: number;
-  
+
   // Potentiel constructible
   potentiel: {
     surfacePlancher: number;
     nombreLogements: number;
-    typeProgramme: 'collectif' | 'individuel' | 'mixte' | '';
+    typeProgramme: "collectif" | "individuel" | "mixte" | "";
     parkings: number;
   };
   potentielScore: number;
-  
+
   // Analyse de marché
   marche: {
     prixM2Neuf: number;
     prixM2Ancien: number;
-    demandeLoc: 'forte' | 'moyenne' | 'faible' | '';
-    tendance: 'hausse' | 'stable' | 'baisse' | '';
+    demandeLoc: "forte" | "moyenne" | "faible" | "";
+    tendance: "hausse" | "stable" | "baisse" | "";
     delaiVente: number;
   };
   marcheScore: number;
-  
+
   // Concurrence
   concurrence: {
     programmesProches: number;
-    stockDisponible: 'eleve' | 'moyen' | 'faible' | '';
+    stockDisponible: "eleve" | "moyen" | "faible" | "";
     positionnement: string;
   };
   concurrenceScore: number;
-  
+
   // Score global Phase 2
   globalScore: number;
   comments: string;
@@ -100,42 +100,47 @@ export interface Phase2Data {
 
 // Phase 3: Analyse financière
 export interface Phase3Data {
-  acquisition: {
-    prixTerrain: number;
-    fraisNotaire: number;
-    fraisAgence: number;
-    taxeAmenagement: number;
-    autresFrais: number;
-    totalAcquisition: number;
+  typeOperation: "dap" | "ddd";
+
+  depenses: {
+    travaux: {
+      miseEnEtatSols: number;
+      voiriePlaces: number;
+      coutTravaux: number;
+      reseaux: number;
+      paysage: number;
+      amenagementExtPaysage: number;
+      ouvragesExceptionnels: number;
+      totalTravaux: number;
+    };
+    etudes: {
+      moe: number;
+      autresEtudes: number;
+      totalEtudes: number;
+    };
+    fraisFinanciers: {
+      tauxEmprunt: number;
+      autresFrais: number;
+      totalFraisFinanciers: number;
+    };
+    autres: {
+      fraisDivers: number;
+      imprevus: number;
+      totalAutres: number;
+    };
   };
-  
-  construction: {
-    coutM2: number;
-    surfaceConstructible: number;
-    coutTravaux: number;
-    honorairesMOE: number;
-    etudesTechniques: number;
-    aleas: number;
-    totalConstruction: number;
-  };
-  
-  fraisAnnexes: {
-    fraisFinanciers: number;
-    fraisCommerciaux: number;
-    assurances: number;
-    gestionProjet: number;
-    totalAnnexes: number;
-  };
-  
+
   budgetTotal: number;
-  
+
   recettes: {
-    prixVenteM2: number;
-    surfaceVendable: number;
+    cessionsChargesFoncieres: number;
+    capaciteNombreLogements: number;
+    autresCessions: number;
+    participations: number;
+    autresSubventions: number;
     caTotal: number;
-    tauxPreCommercialisation: number;
   };
-  
+
   indicateurs: {
     margePromotion: number;
     margePromotionPct: number;
@@ -143,7 +148,7 @@ export interface Phase3Data {
     prixRevientM2: number;
     ratioFoncier: number;
   };
-  
+
   financialScore: number;
   comments: string;
 }
@@ -156,19 +161,19 @@ export interface Phase4Data {
     phase3: number;
     global: number;
   };
-  
+
   swot: {
     forces: string[];
     faiblesses: string[];
     opportunites: string[];
     menaces: string[];
   };
-  
-  recommandation: 'go' | 'go_reserve' | 'no_go' | '';
+
+  recommandation: "go" | "go_reserve" | "no_go" | "";
   justification: string;
   conditionsSuspensives: string[];
   prochainEtapes: string[];
-  
+
   syntheseFinanciere: {
     investissementTotal: number;
     recettesEstimees: number;
@@ -187,7 +192,7 @@ export interface FeasibilityStudy {
   phase4: Phase4Data;
   currentPhase: 1 | 2 | 3 | 4;
   lastModified: string;
-  status: 'draft' | 'in_progress' | 'completed';
+  status: "draft" | "in_progress" | "completed";
 }
 
 // Configuration des pondérations
@@ -217,32 +222,34 @@ export interface WeightConfig {
 }
 
 // Utility functions
-export function calculateGrade(normalizedScore: number): 'A' | 'B' | 'C' | 'D' | 'E' {
-  if (normalizedScore >= 80) return 'A';
-  if (normalizedScore >= 60) return 'B';
-  if (normalizedScore >= 40) return 'C';
-  if (normalizedScore >= 20) return 'D';
-  return 'E';
+export function calculateGrade(
+  normalizedScore: number,
+): "A" | "B" | "C" | "D" | "E" {
+  if (normalizedScore >= 80) return "A";
+  if (normalizedScore >= 60) return "B";
+  if (normalizedScore >= 40) return "C";
+  if (normalizedScore >= 20) return "D";
+  return "E";
 }
 
-export function getGradeColor(grade: 'A' | 'B' | 'C' | 'D' | 'E'): string {
+export function getGradeColor(grade: "A" | "B" | "C" | "D" | "E"): string {
   const colors = {
-    A: 'bg-emerald-500',
-    B: 'bg-lime-500',
-    C: 'bg-yellow-500',
-    D: 'bg-orange-500',
-    E: 'bg-red-500',
+    A: "bg-emerald-500",
+    B: "bg-lime-500",
+    C: "bg-yellow-500",
+    D: "bg-orange-500",
+    E: "bg-red-500",
   };
   return colors[grade];
 }
 
-export function getGradeTextColor(grade: 'A' | 'B' | 'C' | 'D' | 'E'): string {
+export function getGradeTextColor(grade: "A" | "B" | "C" | "D" | "E"): string {
   const colors = {
-    A: 'text-emerald-600',
-    B: 'text-lime-600',
-    C: 'text-yellow-600',
-    D: 'text-orange-600',
-    E: 'text-red-600',
+    A: "text-emerald-600",
+    B: "text-lime-600",
+    C: "text-yellow-600",
+    D: "text-orange-600",
+    E: "text-red-600",
   };
   return colors[grade];
 }

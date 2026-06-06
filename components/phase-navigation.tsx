@@ -13,8 +13,8 @@ interface PhaseNavigationProps {
 }
 
 const phases = [
-  { id: 1 as const, name: 'Analyse initiale', description: 'PLU, servitudes, accessibilité' },
-  { id: 2 as const, name: 'Analyse détaillée', description: 'Urbanisme, marché, concurrence' },
+  { id: 1 as const, name: 'Analyse initiale', description: 'Caractéristiques du site, parcelle' },
+  { id: 2 as const, name: 'Analyse détaillée', description: 'Projet et réseaux existants' },
   { id: 3 as const, name: 'Analyse financière', description: 'Budget, recettes, rentabilité' },
   { id: 4 as const, name: 'Synthèse', description: 'Recommandation finale' },
 ];

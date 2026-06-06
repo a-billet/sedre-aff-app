@@ -1,4 +1,12 @@
-import type { WeightConfig, FeasibilityStudy, Phase1Data, Phase2Data, Phase3Data, Phase4Data, ProjectInfo } from './types';
+import type {
+  WeightConfig,
+  FeasibilityStudy,
+  Phase1Data,
+  Phase2Data,
+  Phase3Data,
+  Phase4Data,
+  ProjectInfo,
+} from "./types";
 
 // Configuration des pondérations par défaut
 export const defaultWeights: WeightConfig = {
@@ -29,21 +37,21 @@ export const defaultWeights: WeightConfig = {
 // Scores par zone PLU
 export const pluZoneScores: Record<string, number> = {
   UA: 100, // Zone urbaine dense
-  UB: 90,  // Zone urbaine
-  UC: 80,  // Zone urbaine périphérique
-  AU: 70,  // Zone à urbaniser
-  A: 20,   // Zone agricole
-  N: 10,   // Zone naturelle
+  UB: 90, // Zone urbaine
+  UC: 80, // Zone urbaine périphérique
+  AU: 70, // Zone à urbaniser
+  A: 20, // Zone agricole
+  N: 10, // Zone naturelle
 };
 
 // Labels pour les zones PLU
 export const pluZoneLabels: Record<string, string> = {
-  UA: 'UA - Zone urbaine dense',
-  UB: 'UB - Zone urbaine',
-  UC: 'UC - Zone urbaine périphérique',
-  AU: 'AU - Zone à urbaniser',
-  A: 'A - Zone agricole',
-  N: 'N - Zone naturelle',
+  UA: "UA - Zone urbaine dense",
+  UB: "UB - Zone urbaine",
+  UC: "UC - Zone urbaine périphérique",
+  AU: "AU - Zone à urbaniser",
+  A: "A - Zone agricole",
+  N: "N - Zone naturelle",
 };
 
 // Scores par niveau d'accessibilité
@@ -88,18 +96,18 @@ export const marketScores = {
 
 // Seuils de recommandation
 export const recommendationThresholds = {
-  go: 70,         // Score >= 70 = GO
+  go: 70, // Score >= 70 = GO
   go_reserve: 50, // Score >= 50 = GO avec réserves
   // Score < 50 = NO GO
 };
 
 // Couleurs pour les scores
 export const scoreColors = {
-  excellent: '#22c55e', // vert
-  good: '#84cc16',      // vert clair
-  average: '#eab308',   // jaune
-  poor: '#f97316',      // orange
-  bad: '#ef4444',       // rouge
+  excellent: "#22c55e", // vert
+  good: "#84cc16", // vert clair
+  average: "#eab308", // jaune
+  poor: "#f97316", // orange
+  bad: "#ef4444", // rouge
 };
 
 export function getScoreColor(score: number): string {
@@ -111,58 +119,60 @@ export function getScoreColor(score: number): string {
 }
 
 export function getScoreLabel(score: number): string {
-  if (score >= 80) return 'Excellent';
-  if (score >= 65) return 'Bon';
-  if (score >= 50) return 'Moyen';
-  if (score >= 35) return 'Faible';
-  return 'Insuffisant';
+  if (score >= 80) return "Excellent";
+  if (score >= 65) return "Bon";
+  if (score >= 50) return "Moyen";
+  if (score >= 35) return "Faible";
+  return "Insuffisant";
 }
 
-export function getRecommendation(score: number): 'go' | 'go_reserve' | 'no_go' {
-  if (score >= recommendationThresholds.go) return 'go';
-  if (score >= recommendationThresholds.go_reserve) return 'go_reserve';
-  return 'no_go';
+export function getRecommendation(
+  score: number,
+): "go" | "go_reserve" | "no_go" {
+  if (score >= recommendationThresholds.go) return "go";
+  if (score >= recommendationThresholds.go_reserve) return "go_reserve";
+  return "no_go";
 }
 
 export const recommendationLabels = {
-  go: 'GO - Projet viable',
-  go_reserve: 'GO avec réserves',
-  no_go: 'NO GO - Projet non recommandé',
+  go: "GO - Projet viable",
+  go_reserve: "GO avec réserves",
+  no_go: "NO GO - Projet non recommandé",
 };
 
 export const recommendationColors = {
-  go: '#22c55e',
-  go_reserve: '#eab308',
-  no_go: '#ef4444',
+  go: "#22c55e",
+  go_reserve: "#eab308",
+  no_go: "#ef4444",
 };
 
 // Valeurs initiales
 export const initialProjectInfo: ProjectInfo = {
-  projectName: '',
-  address: '',
-  city: '',
-  department: '',
-  cadastralRef: '',
+  projectName: "",
+  address: "",
+  city: "",
+  department: "",
+  cadastralRef: "",
   landArea: 0,
   acquisitionPrice: 0,
   dateCreated: new Date().toISOString(),
 };
 
 export const initialPhase1: Phase1Data = {
-  pluZone: '',
+  pluZone: "",
   pluZoneScore: 0,
   servitudes: {
     patrimoine: false,
     inondation: false,
     bruit: false,
     pollution: false,
-    autres: '',
+    autres: "",
   },
   servitudesScore: 100,
   accessibilite: {
-    transportEnCommun: '',
-    axesRoutiers: '',
-    stationnement: '',
+    transportEnCommun: "",
+    axesRoutiers: "",
+    stationnement: "",
   },
   accessibiliteScore: 0,
   environnement: {
@@ -170,11 +180,11 @@ export const initialPhase1: Phase1Data = {
     ecoles: false,
     sante: false,
     espaceVerts: false,
-    nuisances: '',
+    nuisances: "",
   },
   environnementScore: 0,
   globalScore: 0,
-  comments: '',
+  comments: "",
 };
 
 export const initialPhase2: Phase2Data = {
@@ -193,59 +203,65 @@ export const initialPhase2: Phase2Data = {
   potentiel: {
     surfacePlancher: 0,
     nombreLogements: 0,
-    typeProgramme: '',
+    typeProgramme: "",
     parkings: 0,
   },
   potentielScore: 0,
   marche: {
     prixM2Neuf: 0,
     prixM2Ancien: 0,
-    demandeLoc: '',
-    tendance: '',
+    demandeLoc: "",
+    tendance: "",
     delaiVente: 0,
   },
   marcheScore: 0,
   concurrence: {
     programmesProches: 0,
-    stockDisponible: '',
-    positionnement: '',
+    stockDisponible: "",
+    positionnement: "",
   },
   concurrenceScore: 0,
   globalScore: 0,
-  comments: '',
+  comments: "",
 };
 
 export const initialPhase3: Phase3Data = {
-  acquisition: {
-    prixTerrain: 0,
-    fraisNotaire: 0,
-    fraisAgence: 0,
-    taxeAmenagement: 0,
-    autresFrais: 0,
-    totalAcquisition: 0,
-  },
-  construction: {
-    coutM2: 1800,
-    surfaceConstructible: 0,
-    coutTravaux: 0,
-    honorairesMOE: 10,
-    etudesTechniques: 0,
-    aleas: 5,
-    totalConstruction: 0,
-  },
-  fraisAnnexes: {
-    fraisFinanciers: 0,
-    fraisCommerciaux: 0,
-    assurances: 0,
-    gestionProjet: 0,
-    totalAnnexes: 0,
+  typeOperation: "dap",
+  depenses: {
+    travaux: {
+      miseEnEtatSols: 0,
+      voiriePlaces: 0,
+      coutTravaux: 0,
+      reseaux: 0,
+      paysage: 0,
+      amenagementExtPaysage: 0,
+      ouvragesExceptionnels: 0,
+      totalTravaux: 0,
+    },
+    etudes: {
+      moe: 0,
+      autresEtudes: 0,
+      totalEtudes: 0,
+    },
+    fraisFinanciers: {
+      tauxEmprunt: 0,
+      autresFrais: 0,
+      totalFraisFinanciers: 0,
+    },
+    autres: {
+      fraisDivers: 0,
+      imprevus: 0,
+      totalAutres: 0,
+    },
   },
   budgetTotal: 0,
   recettes: {
-    prixVenteM2: 0,
-    surfaceVendable: 0,
+    cessionsChargesFoncieres: 0,
+    capaciteNombreLogements: 0,
+    autresCessions: 0,
+    participations: 0,
+    autresSubventions: 0,
     caTotal: 0,
-    tauxPreCommercialisation: 0,
   },
   indicateurs: {
     margePromotion: 0,
@@ -255,7 +271,7 @@ export const initialPhase3: Phase3Data = {
     ratioFoncier: 0,
   },
   financialScore: 0,
-  comments: '',
+  comments: "",
 };
 
 export const initialPhase4: Phase4Data = {
@@ -271,8 +287,8 @@ export const initialPhase4: Phase4Data = {
     opportunites: [],
     menaces: [],
   },
-  recommandation: '',
-  justification: '',
+  recommandation: "",
+  justification: "",
   conditionsSuspensives: [],
   prochainEtapes: [],
   syntheseFinanciere: {
@@ -293,6 +309,6 @@ export function createEmptyStudy(): FeasibilityStudy {
     phase4: { ...initialPhase4 },
     currentPhase: 1,
     lastModified: new Date().toISOString(),
-    status: 'draft',
+    status: "draft",
   };
 }

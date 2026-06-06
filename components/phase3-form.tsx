@@ -4,11 +4,12 @@ import { useEffect, useCallback } from 'react';
 import { Phase3Data } from '@/lib/types';
 import { getScoreColor, getScoreLabel, defaultWeights } from '@/lib/config';
 import {
-  calculateAcquisitionTotal,
-  calculateConstructionTotal,
-  calculateFraisAnnexesTotal,
+  calculateAutresTotal,
+  calculateEtudesTotal,
+  calculateFraisFinanciersTotal,
   calculateIndicateurs,
   calculateFinancialScore,
+  calculateTravauxTotal,
 } from '@/lib/calculations';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
@@ -19,41 +20,39 @@ import { ScoreDisplay } from '@/components/score-display';
 interface Phase3FormProps {
   data: Phase3Data;
   onUpdate: (data: Phase3Data) => void;
-  acquisitionPrice: number;
-  surfacePlancher: number;
+  housingCapacity: number;
 }
 
-export function Phase3Form({ data, onUpdate, acquisitionPrice, surfacePlancher }: Phase3FormProps) {
-  // Initialize terrain price from project info if not set
-  useEffect(() => {
-    if (acquisitionPrice > 0 && data.acquisition.prixTerrain === 0) {
-      onUpdate({
-        ...data,
-        acquisition: { ...data.acquisition, prixTerrain: acquisitionPrice },
-      });
-    }
-  }, [acquisitionPrice, data, onUpdate]);
+export function Phase3Form({ data, onUpdate, housingCapacity }: Phase3FormProps) {
+  const recettesLogement = data.typeOperation === 'dap'
+    ? data.recettes.cessionsChargesFoncieres
+    : data.recettes.autresCessions;
 
   // Recalculate totals when data changes
   const recalculate = useCallback(() => {
-    // Calculate totals
-    const totalAcquisition = calculateAcquisitionTotal(data.acquisition);
-    const coutTravaux = data.construction.coutM2 * data.construction.surfaceConstructible;
-    const totalConstruction = calculateConstructionTotal(data.construction);
-    const totalAnnexes = calculateFraisAnnexesTotal(data.fraisAnnexes);
-    const budgetTotal = totalAcquisition + totalConstruction + totalAnnexes;
-    const caTotal = data.recettes.prixVenteM2 * data.recettes.surfaceVendable;
+    const totalTravaux = calculateTravauxTotal(data.depenses.travaux, data.typeOperation);
+    const totalEtudes = calculateEtudesTotal(data.depenses.etudes);
+    const totalFraisFinanciers = calculateFraisFinanciersTotal(
+      data.depenses.fraisFinanciers,
+      totalTravaux,
+      totalEtudes,
+    );
+    const totalAutres = calculateAutresTotal(data.depenses.autres);
+    const budgetTotal = totalTravaux + totalEtudes + totalFraisFinanciers + totalAutres;
+    const caTotal =
+      (data.typeOperation === 'dap' ? data.recettes.cessionsChargesFoncieres : 0) +
+      data.recettes.autresCessions +
+      data.recettes.participations +
+      data.recettes.autresSubventions;
 
-    // Calculate indicators
-    const indicateurs = calculateIndicateurs(budgetTotal, { ...data.recettes, caTotal }, data.acquisition);
+    const indicateurs = calculateIndicateurs(budgetTotal, { ...data.recettes, caTotal }, data.typeOperation);
     const financialScore = calculateFinancialScore(indicateurs);
 
-    // Check if update is needed
     if (
-      data.acquisition.totalAcquisition !== totalAcquisition ||
-      data.construction.coutTravaux !== coutTravaux ||
-      data.construction.totalConstruction !== totalConstruction ||
-      data.fraisAnnexes.totalAnnexes !== totalAnnexes ||
+      data.depenses.travaux.totalTravaux !== totalTravaux ||
+      data.depenses.etudes.totalEtudes !== totalEtudes ||
+      data.depenses.fraisFinanciers.totalFraisFinanciers !== totalFraisFinanciers ||
+      data.depenses.autres.totalAutres !== totalAutres ||
       data.budgetTotal !== budgetTotal ||
       data.recettes.caTotal !== caTotal ||
       data.financialScore !== financialScore ||
@@ -61,9 +60,12 @@ export function Phase3Form({ data, onUpdate, acquisitionPrice, surfacePlancher }
     ) {
       onUpdate({
         ...data,
-        acquisition: { ...data.acquisition, totalAcquisition },
-        construction: { ...data.construction, coutTravaux, totalConstruction },
-        fraisAnnexes: { ...data.fraisAnnexes, totalAnnexes },
+        depenses: {
+          travaux: { ...data.depenses.travaux, totalTravaux },
+          etudes: { ...data.depenses.etudes, totalEtudes },
+          fraisFinanciers: { ...data.depenses.fraisFinanciers, totalFraisFinanciers },
+          autres: { ...data.depenses.autres, totalAutres },
+        },
         budgetTotal,
         recettes: { ...data.recettes, caTotal },
         indicateurs,
@@ -76,35 +78,52 @@ export function Phase3Form({ data, onUpdate, acquisitionPrice, surfacePlancher }
     recalculate();
   }, [recalculate]);
 
-  // Initialize surface from Phase 2 if available
   useEffect(() => {
-    if (surfacePlancher > 0 && data.construction.surfaceConstructible === 0) {
+    if (housingCapacity > 0 && data.recettes.capaciteNombreLogements === 0) {
       onUpdate({
         ...data,
-        construction: { ...data.construction, surfaceConstructible: surfacePlancher },
-        recettes: { ...data.recettes, surfaceVendable: Math.round(surfacePlancher * 0.85) },
+        recettes: { ...data.recettes, capaciteNombreLogements: housingCapacity },
       });
     }
-  }, [surfacePlancher, data, onUpdate]);
+  }, [housingCapacity, data, onUpdate]);
 
-  const updateAcquisition = (key: keyof Phase3Data['acquisition'], value: number) => {
+  const updateTravaux = (key: keyof Phase3Data['depenses']['travaux'], value: number) => {
     onUpdate({
       ...data,
-      acquisition: { ...data.acquisition, [key]: value },
+      depenses: {
+        ...data.depenses,
+        travaux: { ...data.depenses.travaux, [key]: value },
+      },
     });
   };
 
-  const updateConstruction = (key: keyof Phase3Data['construction'], value: number) => {
+  const updateEtudes = (key: keyof Phase3Data['depenses']['etudes'], value: number) => {
     onUpdate({
       ...data,
-      construction: { ...data.construction, [key]: value },
+      depenses: {
+        ...data.depenses,
+        etudes: { ...data.depenses.etudes, [key]: value },
+      },
     });
   };
 
-  const updateFraisAnnexes = (key: keyof Phase3Data['fraisAnnexes'], value: number) => {
+  const updateFraisFinanciers = (key: keyof Phase3Data['depenses']['fraisFinanciers'], value: number) => {
     onUpdate({
       ...data,
-      fraisAnnexes: { ...data.fraisAnnexes, [key]: value },
+      depenses: {
+        ...data.depenses,
+        fraisFinanciers: { ...data.depenses.fraisFinanciers, [key]: value },
+      },
+    });
+  };
+
+  const updateAutres = (key: keyof Phase3Data['depenses']['autres'], value: number) => {
+    onUpdate({
+      ...data,
+      depenses: {
+        ...data.depenses,
+        autres: { ...data.depenses.autres, [key]: value },
+      },
     });
   };
 
@@ -112,6 +131,17 @@ export function Phase3Form({ data, onUpdate, acquisitionPrice, surfacePlancher }
     onUpdate({
       ...data,
       recettes: { ...data.recettes, [key]: value },
+    });
+  };
+
+  const updateTypeOperation = (typeOperation: Phase3Data['typeOperation']) => {
+    onUpdate({
+      ...data,
+      typeOperation,
+      recettes: {
+        ...data.recettes,
+        cessionsChargesFoncieres: typeOperation === 'ddd' ? 0 : data.recettes.cessionsChargesFoncieres,
+      },
     });
   };
 
@@ -132,17 +162,44 @@ export function Phase3Form({ data, onUpdate, acquisitionPrice, surfacePlancher }
         ]}
       />
 
+      <Card>
+        <CardHeader>
+          <CardTitle>Type de bilan financier</CardTitle>
+          <CardDescription>Choisir le montage correspondant au projet pour adapter les postes travaux</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-3 md:grid-cols-2">
+            <button
+              type="button"
+              onClick={() => updateTypeOperation('dap')}
+              className={`rounded-xl border p-4 text-left transition-colors ${data.typeOperation === 'dap' ? 'border-primary bg-primary/5' : 'border-border hover:bg-muted/40'}`}
+            >
+              <div className="text-sm font-semibold text-foreground">Opération d&apos;aménagement</div>
+              <div className="mt-1 text-sm text-muted-foreground">Droit à construire, DAP</div>
+            </button>
+            <button
+              type="button"
+              onClick={() => updateTypeOperation('ddd')}
+              className={`rounded-xl border p-4 text-left transition-colors ${data.typeOperation === 'ddd' ? 'border-primary bg-primary/5' : 'border-border hover:bg-muted/40'}`}
+            >
+              <div className="text-sm font-semibold text-foreground">Promotion ou logement social</div>
+              <div className="mt-1 text-sm text-muted-foreground">Opération DDD</div>
+            </button>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Financial Summary */}
       <div className="grid gap-4 md:grid-cols-3">
         <SummaryCard
           title="Budget total"
           value={formatCurrency(data.budgetTotal)}
-          detail={data.recettes.surfaceVendable > 0 ? `${formatCurrency(data.indicateurs.prixRevientM2)}/m²` : undefined}
+          detail={data.recettes.capaciteNombreLogements > 0 ? `${formatCurrency(data.indicateurs.prixRevientM2)}/logement` : undefined}
         />
         <SummaryCard
           title="Recettes estimées"
           value={formatCurrency(data.recettes.caTotal)}
-          detail={data.recettes.surfaceVendable > 0 ? `${formatCurrency(data.recettes.prixVenteM2)}/m²` : undefined}
+          detail={data.recettes.capaciteNombreLogements > 0 ? `${formatCurrency(data.recettes.caTotal / data.recettes.capaciteNombreLogements)}/logement` : undefined}
         />
         <SummaryCard
           title="Marge promotion"
@@ -152,232 +209,372 @@ export function Phase3Form({ data, onUpdate, acquisitionPrice, surfacePlancher }
         />
       </div>
 
-      {/* Acquisition */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center justify-between">
-            <span>Coûts d&apos;acquisition</span>
-            <span className="text-lg font-bold text-primary">{formatCurrency(data.acquisition.totalAcquisition)}</span>
-          </CardTitle>
-          <CardDescription>Frais liés à l&apos;acquisition du terrain</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            <div className="space-y-2">
-              <Label htmlFor="prixTerrain">Prix du terrain (€)</Label>
-              <Input
-                id="prixTerrain"
-                type="number"
-                value={data.acquisition.prixTerrain || ''}
-                onChange={(e) => updateAcquisition('prixTerrain', parseFloat(e.target.value) || 0)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="fraisNotaire">Frais de notaire (€)</Label>
-              <Input
-                id="fraisNotaire"
-                type="number"
-                value={data.acquisition.fraisNotaire || ''}
-                onChange={(e) => updateAcquisition('fraisNotaire', parseFloat(e.target.value) || 0)}
-                placeholder={`Suggestion: ${formatCurrency(data.acquisition.prixTerrain * 0.075)}`}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="fraisAgence">Frais d&apos;agence (€)</Label>
-              <Input
-                id="fraisAgence"
-                type="number"
-                value={data.acquisition.fraisAgence || ''}
-                onChange={(e) => updateAcquisition('fraisAgence', parseFloat(e.target.value) || 0)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="taxeAmenagement">Taxe d&apos;aménagement (€)</Label>
-              <Input
-                id="taxeAmenagement"
-                type="number"
-                value={data.acquisition.taxeAmenagement || ''}
-                onChange={(e) => updateAcquisition('taxeAmenagement', parseFloat(e.target.value) || 0)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="autresFrais">Autres frais (€)</Label>
-              <Input
-                id="autresFrais"
-                type="number"
-                value={data.acquisition.autresFrais || ''}
-                onChange={(e) => updateAcquisition('autresFrais', parseFloat(e.target.value) || 0)}
-              />
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Construction */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center justify-between">
-            <span>Coûts de construction</span>
-            <span className="text-lg font-bold text-primary">{formatCurrency(data.construction.totalConstruction)}</span>
-          </CardTitle>
-          <CardDescription>Budget travaux et honoraires</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            <div className="space-y-2">
-              <Label htmlFor="surfaceConstructible">Surface constructible (m²)</Label>
-              <Input
-                id="surfaceConstructible"
-                type="number"
-                value={data.construction.surfaceConstructible || ''}
-                onChange={(e) => updateConstruction('surfaceConstructible', parseFloat(e.target.value) || 0)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="coutM2">Coût construction (€/m²)</Label>
-              <Input
-                id="coutM2"
-                type="number"
-                value={data.construction.coutM2 || ''}
-                onChange={(e) => updateConstruction('coutM2', parseFloat(e.target.value) || 0)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Coût travaux brut</Label>
-              <div className="h-9 flex items-center px-3 bg-muted rounded-md text-sm font-medium">
-                {formatCurrency(data.construction.coutTravaux)}
+      <div className="grid gap-6 xl:grid-cols-[1.6fr_1fr]">
+        <div className="space-y-4">
+          <div className="rounded-xl border border-border/60 bg-muted/20 p-4">
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <div className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Dépenses</div>
+                <div className="mt-1 text-sm text-muted-foreground">Vision consolidée des coûts du projet</div>
+              </div>
+              <div className="text-right">
+                <div className="text-xs text-muted-foreground">Total dépenses</div>
+                <div className="text-2xl font-bold text-foreground">{formatCurrency(data.budgetTotal)}</div>
               </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="honorairesMOE">Honoraires MOE (%)</Label>
-              <Input
-                id="honorairesMOE"
-                type="number"
-                value={data.construction.honorairesMOE || ''}
-                onChange={(e) => updateConstruction('honorairesMOE', parseFloat(e.target.value) || 0)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="etudesTechniques">Études techniques (€)</Label>
-              <Input
-                id="etudesTechniques"
-                type="number"
-                value={data.construction.etudesTechniques || ''}
-                onChange={(e) => updateConstruction('etudesTechniques', parseFloat(e.target.value) || 0)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="aleas">Aléas (%)</Label>
-              <Input
-                id="aleas"
-                type="number"
-                value={data.construction.aleas || ''}
-                onChange={(e) => updateConstruction('aleas', parseFloat(e.target.value) || 0)}
-              />
-            </div>
           </div>
-        </CardContent>
-      </Card>
 
-      {/* Frais annexes */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center justify-between">
-            <span>Frais annexes</span>
-            <span className="text-lg font-bold text-primary">{formatCurrency(data.fraisAnnexes.totalAnnexes)}</span>
-          </CardTitle>
-          <CardDescription>Frais financiers, commerciaux et de gestion</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <div className="space-y-2">
-              <Label htmlFor="fraisFinanciers">Frais financiers (€)</Label>
-              <Input
-                id="fraisFinanciers"
-                type="number"
-                value={data.fraisAnnexes.fraisFinanciers || ''}
-                onChange={(e) => updateFraisAnnexes('fraisFinanciers', parseFloat(e.target.value) || 0)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="fraisCommerciaux">Frais commerciaux (€)</Label>
-              <Input
-                id="fraisCommerciaux"
-                type="number"
-                value={data.fraisAnnexes.fraisCommerciaux || ''}
-                onChange={(e) => updateFraisAnnexes('fraisCommerciaux', parseFloat(e.target.value) || 0)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="assurances">Assurances (€)</Label>
-              <Input
-                id="assurances"
-                type="number"
-                value={data.fraisAnnexes.assurances || ''}
-                onChange={(e) => updateFraisAnnexes('assurances', parseFloat(e.target.value) || 0)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="gestionProjet">Gestion de projet (€)</Label>
-              <Input
-                id="gestionProjet"
-                type="number"
-                value={data.fraisAnnexes.gestionProjet || ''}
-                onChange={(e) => updateFraisAnnexes('gestionProjet', parseFloat(e.target.value) || 0)}
-              />
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+          {/* Acquisition */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between">
+                <span>Travaux</span>
+                <span className="text-lg font-bold text-primary">{formatCurrency(data.depenses.travaux.totalTravaux)}</span>
+              </CardTitle>
+              <CardDescription>
+                {data.typeOperation === 'dap'
+                  ? 'Postes opérationnels d\'aménagement et de réalisation'
+                  : 'Postes travaux pour une opération de promotion ou de logement social'}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                <div className="space-y-2">
+                  <Label htmlFor="miseEnEtatSols">Mise en état des sols (€)</Label>
+                  <Input
+                    id="miseEnEtatSols"
+                    type="number"
+                    value={data.depenses.travaux.miseEnEtatSols || ''}
+                    onChange={(e) => updateTravaux('miseEnEtatSols', parseFloat(e.target.value) || 0)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  {data.typeOperation === 'dap' ? (
+                    <>
+                      <Label htmlFor="voiriePlaces">Voirie / places (€)</Label>
+                      <Input
+                        id="voiriePlaces"
+                        type="number"
+                        value={data.depenses.travaux.voiriePlaces || ''}
+                        onChange={(e) => updateTravaux('voiriePlaces', parseFloat(e.target.value) || 0)}
+                      />
+                    </>
+                  ) : (
+                    <>
+                      <Label htmlFor="coutTravaux">Coût travaux (€)</Label>
+                      <Input
+                        id="coutTravaux"
+                        type="number"
+                        value={data.depenses.travaux.coutTravaux || ''}
+                        onChange={(e) => updateTravaux('coutTravaux', parseFloat(e.target.value) || 0)}
+                      />
+                    </>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="reseaux">Réseaux (€)</Label>
+                  <Input
+                    id="reseaux"
+                    type="number"
+                    value={data.depenses.travaux.reseaux || ''}
+                    onChange={(e) => updateTravaux('reseaux', parseFloat(e.target.value) || 0)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  {data.typeOperation === 'dap' ? (
+                    <>
+                      <Label htmlFor="paysage">Paysage (€)</Label>
+                      <Input
+                        id="paysage"
+                        type="number"
+                        value={data.depenses.travaux.paysage || ''}
+                        onChange={(e) => updateTravaux('paysage', parseFloat(e.target.value) || 0)}
+                      />
+                    </>
+                  ) : (
+                    <>
+                      <Label htmlFor="amenagementExtPaysage">Aménagement ext / paysage (€)</Label>
+                      <Input
+                        id="amenagementExtPaysage"
+                        type="number"
+                        value={data.depenses.travaux.amenagementExtPaysage || ''}
+                        onChange={(e) => updateTravaux('amenagementExtPaysage', parseFloat(e.target.value) || 0)}
+                      />
+                    </>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="ouvragesExceptionnels">Ouvrages exceptionnels (€)</Label>
+                  <Input
+                    id="ouvragesExceptionnels"
+                    type="number"
+                    value={data.depenses.travaux.ouvragesExceptionnels || ''}
+                    onChange={(e) => updateTravaux('ouvragesExceptionnels', parseFloat(e.target.value) || 0)}
+                  />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
-      {/* Recettes */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center justify-between">
-            <span>Recettes prévisionnelles</span>
-            <span className="text-lg font-bold text-emerald-600">{formatCurrency(data.recettes.caTotal)}</span>
-          </CardTitle>
-          <CardDescription>Estimation des ventes</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <div className="space-y-2">
-              <Label htmlFor="surfaceVendable">Surface vendable (m²)</Label>
-              <Input
-                id="surfaceVendable"
-                type="number"
-                value={data.recettes.surfaceVendable || ''}
-                onChange={(e) => updateRecettes('surfaceVendable', parseFloat(e.target.value) || 0)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="prixVenteM2">Prix de vente (€/m²)</Label>
-              <Input
-                id="prixVenteM2"
-                type="number"
-                value={data.recettes.prixVenteM2 || ''}
-                onChange={(e) => updateRecettes('prixVenteM2', parseFloat(e.target.value) || 0)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>CA Total</Label>
-              <div className="h-9 flex items-center px-3 bg-emerald-50 rounded-md text-sm font-medium text-emerald-700">
-                {formatCurrency(data.recettes.caTotal)}
+          {/* Construction */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between">
+                <span>Études</span>
+                <span className="text-lg font-bold text-primary">{formatCurrency(data.depenses.etudes.totalEtudes)}</span>
+              </CardTitle>
+              <CardDescription>Maîtrise d&apos;oeuvre et études préalables</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="moe">MOE (€)</Label>
+                  <Input
+                    id="moe"
+                    type="number"
+                    value={data.depenses.etudes.moe || ''}
+                    onChange={(e) => updateEtudes('moe', parseFloat(e.target.value) || 0)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="autresEtudes">Autres études (préalables...) (€)</Label>
+                  <Input
+                    id="autresEtudes"
+                    type="number"
+                    value={data.depenses.etudes.autresEtudes || ''}
+                    onChange={(e) => updateEtudes('autresEtudes', parseFloat(e.target.value) || 0)}
+                  />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Frais annexes */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between">
+                <span>Frais financiers</span>
+                <span className="text-lg font-bold text-primary">{formatCurrency(data.depenses.fraisFinanciers.totalFraisFinanciers)}</span>
+              </CardTitle>
+              <CardDescription>Coût estimatif du financement et frais associés</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="tauxEmprunt">Taux d&apos;emprunt (%)</Label>
+                  <Input
+                    id="tauxEmprunt"
+                    type="number"
+                    value={data.depenses.fraisFinanciers.tauxEmprunt || ''}
+                    onChange={(e) => updateFraisFinanciers('tauxEmprunt', parseFloat(e.target.value) || 0)}
+                    placeholder="Ex: 4.5"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="autresFraisFinanciers">Autres frais (€)</Label>
+                  <Input
+                    id="autresFraisFinanciers"
+                    type="number"
+                    value={data.depenses.fraisFinanciers.autresFrais || ''}
+                    onChange={(e) => updateFraisFinanciers('autresFrais', parseFloat(e.target.value) || 0)}
+                  />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between">
+                <span>Autres</span>
+                <span className="text-lg font-bold text-primary">{formatCurrency(data.depenses.autres.totalAutres)}</span>
+              </CardTitle>
+              <CardDescription>Frais complémentaires et provisions</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="fraisDivers">Frais divers (€)</Label>
+                  <Input
+                    id="fraisDivers"
+                    type="number"
+                    value={data.depenses.autres.fraisDivers || ''}
+                    onChange={(e) => updateAutres('fraisDivers', parseFloat(e.target.value) || 0)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="imprevus">Imprévus (€)</Label>
+                  <Input
+                    id="imprevus"
+                    type="number"
+                    value={data.depenses.autres.imprevus || ''}
+                    onChange={(e) => updateAutres('imprevus', parseFloat(e.target.value) || 0)}
+                  />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="space-y-4">
+          <div className="rounded-xl border border-emerald-200 bg-emerald-50/60 p-4">
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <div className="text-xs uppercase tracking-[0.2em] text-emerald-700">Recettes</div>
+                <div className="mt-1 text-sm text-emerald-700/80">Lecture directe du produit prévisionnel</div>
+              </div>
+              <div className="text-right">
+                <div className="text-xs text-emerald-700/80">Total recettes</div>
+                <div className="text-2xl font-bold text-emerald-700">{formatCurrency(data.recettes.caTotal)}</div>
               </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="tauxPreCommercialisation">Pré-commercialisation (%)</Label>
-              <Input
-                id="tauxPreCommercialisation"
-                type="number"
-                value={data.recettes.tauxPreCommercialisation || ''}
-                onChange={(e) => updateRecettes('tauxPreCommercialisation', parseFloat(e.target.value) || 0)}
-                placeholder="Ex: 30"
-              />
-            </div>
           </div>
-        </CardContent>
-      </Card>
+
+          {/* Recettes */}
+          <Card className="border-emerald-200/80">
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between">
+                <span>Recettes prévisionnelles</span>
+                <span className="text-lg font-bold text-emerald-600">{formatCurrency(data.recettes.caTotal)}</span>
+              </CardTitle>
+              <CardDescription>
+                {data.typeOperation === 'dap'
+                  ? 'Cessions, participations et autres produits'
+                  : 'Logement, participations et autres produits'}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {data.typeOperation === 'dap' ? (
+                  <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-1">
+                    <div className="space-y-2">
+                      <Label htmlFor="cessionsChargesFoncieres">Cessions (charges foncières) (€)</Label>
+                      <Input
+                        id="cessionsChargesFoncieres"
+                        type="number"
+                        value={data.recettes.cessionsChargesFoncieres || ''}
+                        onChange={(e) => updateRecettes('cessionsChargesFoncieres', parseFloat(e.target.value) || 0)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="capaciteNombreLogements">Capacité en nombre de logements</Label>
+                      <Input
+                        id="capaciteNombreLogements"
+                        type="number"
+                        value={data.recettes.capaciteNombreLogements || ''}
+                        onChange={(e) => updateRecettes('capaciteNombreLogements', parseFloat(e.target.value) || 0)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="autresCessions">Autres cessions (€)</Label>
+                      <Input
+                        id="autresCessions"
+                        type="number"
+                        value={data.recettes.autresCessions || ''}
+                        onChange={(e) => updateRecettes('autresCessions', parseFloat(e.target.value) || 0)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="participations">Participations (€)</Label>
+                      <Input
+                        id="participations"
+                        type="number"
+                        value={data.recettes.participations || ''}
+                        onChange={(e) => updateRecettes('participations', parseFloat(e.target.value) || 0)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="autresSubventions">Autres (subventions) (€)</Label>
+                      <Input
+                        id="autresSubventions"
+                        type="number"
+                        value={data.recettes.autresSubventions || ''}
+                        onChange={(e) => updateRecettes('autresSubventions', parseFloat(e.target.value) || 0)}
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <div className="rounded-lg border border-emerald-200/80 bg-emerald-50/40 p-4">
+                      <div className="mb-3 text-xs font-semibold uppercase tracking-[0.16em] text-emerald-700">Logement</div>
+                      <div className="grid gap-4 sm:grid-cols-2">
+                        <div className="space-y-2">
+                          <Label htmlFor="capaciteNombreLogements">Capacité en nombre de logements</Label>
+                          <Input
+                            id="capaciteNombreLogements"
+                            type="number"
+                            value={data.recettes.capaciteNombreLogements || ''}
+                            onChange={(e) => updateRecettes('capaciteNombreLogements', parseFloat(e.target.value) || 0)}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="autresCessions">Autres cessions (€)</Label>
+                          <Input
+                            id="autresCessions"
+                            type="number"
+                            value={data.recettes.autresCessions || ''}
+                            onChange={(e) => updateRecettes('autresCessions', parseFloat(e.target.value) || 0)}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-1">
+                      <div className="space-y-2">
+                        <Label htmlFor="participations">Participations (€)</Label>
+                        <Input
+                          id="participations"
+                          type="number"
+                          value={data.recettes.participations || ''}
+                          onChange={(e) => updateRecettes('participations', parseFloat(e.target.value) || 0)}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="autresSubventions">Autres (subventions) (€)</Label>
+                        <Input
+                          id="autresSubventions"
+                          type="number"
+                          value={data.recettes.autresSubventions || ''}
+                          onChange={(e) => updateRecettes('autresSubventions', parseFloat(e.target.value) || 0)}
+                        />
+                      </div>
+                    </div>
+                  </>
+                )}
+                <div className="space-y-2">
+                  <Label>Total recettes</Label>
+                  <div className="h-9 flex items-center px-3 bg-emerald-50 rounded-md text-sm font-medium text-emerald-700">
+                    {formatCurrency(data.recettes.caTotal)}
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-emerald-200/80 bg-emerald-50/40">
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between">
+                <span>Solde prévisionnel</span>
+                <span className={`text-lg font-bold ${data.indicateurs.margePromotion >= 0 ? 'text-emerald-700' : 'text-red-600'}`}>
+                  {formatCurrency(data.indicateurs.margePromotion)}
+                </span>
+              </CardTitle>
+              <CardDescription>Écart entre les recettes et les dépenses consolidées</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
+                <div className="rounded-lg border border-border/60 bg-background/70 p-3">
+                  <div className="text-xs uppercase tracking-[0.16em] text-muted-foreground">Dépenses</div>
+                  <div className="mt-1 text-lg font-semibold text-foreground">{formatCurrency(data.budgetTotal)}</div>
+                </div>
+                <div className="rounded-lg border border-emerald-200 bg-background/70 p-3">
+                  <div className="text-xs uppercase tracking-[0.16em] text-muted-foreground">Recettes</div>
+                  <div className="mt-1 text-lg font-semibold text-emerald-700">{formatCurrency(data.recettes.caTotal)}</div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
 
       {/* Indicateurs */}
       <Card>
@@ -403,14 +600,14 @@ export function Phase3Form({ data, onUpdate, acquisitionPrice, surfacePlancher }
               higherIsBetter
             />
             <IndicatorCard
-              label="Prix de revient"
-              value={`${formatCurrency(data.indicateurs.prixRevientM2)}/m²`}
+              label="Coût moyen/logement"
+              value={`${formatCurrency(data.indicateurs.prixRevientM2)}/logement`}
             />
             <IndicatorCard
               label="Ratio foncier"
               value={`${data.indicateurs.ratioFoncier.toFixed(1)}%`}
-              threshold={defaultWeights.phase3.ratioFoncierMax}
-              currentPercent={data.indicateurs.ratioFoncier}
+              threshold={data.typeOperation === 'dap' ? defaultWeights.phase3.ratioFoncierMax : undefined}
+              currentPercent={data.typeOperation === 'dap' ? data.indicateurs.ratioFoncier : undefined}
               higherIsBetter={false}
             />
             <IndicatorCard
@@ -473,7 +670,7 @@ function IndicatorCard({
   color?: string;
 }) {
   let status: 'good' | 'warning' | 'bad' | 'neutral' = 'neutral';
-  
+
   if (threshold !== undefined && currentPercent !== undefined) {
     if (higherIsBetter) {
       if (currentPercent >= threshold) status = 'good';

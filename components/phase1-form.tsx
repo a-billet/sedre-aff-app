@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
-import { Phase1Data } from '@/lib/types';
+import { Phase1Data, ProjectInfo } from '@/lib/types';
 import { pluZoneLabels, pluZoneScores, getScoreColor, getScoreLabel } from '@/lib/config';
 import {
   calculateServitudesScore,
@@ -25,10 +25,11 @@ import { ScoreDisplay } from '@/components/score-display';
 interface Phase1FormProps {
   data: Phase1Data;
   onUpdate: (data: Phase1Data) => void;
-  landArea: number;
+  projectInfo: ProjectInfo;
+  onUpdateProjectInfo: (projectInfo: ProjectInfo) => void;
 }
 
-export function Phase1Form({ data, onUpdate, landArea }: Phase1FormProps) {
+export function Phase1Form({ data, onUpdate, projectInfo, onUpdateProjectInfo }: Phase1FormProps) {
   // Recalculate scores when data changes
   useEffect(() => {
     const pluZoneScore = data.pluZone ? pluZoneScores[data.pluZone] || 0 : 0;
@@ -67,10 +68,10 @@ export function Phase1Form({ data, onUpdate, landArea }: Phase1FormProps) {
     });
   };
 
-  const updateAccessibilite = (key: keyof Phase1Data['accessibilite'], value: string) => {
+  const updateAccessibilite = (key: keyof Phase1Data['accessibilite'], value: string | null) => {
     onUpdate({
       ...data,
-      accessibilite: { ...data.accessibilite, [key]: value },
+      accessibilite: { ...data.accessibilite, [key]: value ?? '' },
     });
   };
 
@@ -78,6 +79,13 @@ export function Phase1Form({ data, onUpdate, landArea }: Phase1FormProps) {
     onUpdate({
       ...data,
       environnement: { ...data.environnement, [key]: value },
+    });
+  };
+
+  const updateProperty = (key: 'landArea' | 'acquisitionPrice', value: number) => {
+    onUpdateProjectInfo({
+      ...projectInfo,
+      [key]: value,
     });
   };
 
@@ -94,6 +102,39 @@ export function Phase1Form({ data, onUpdate, landArea }: Phase1FormProps) {
           { label: 'Environnement', score: data.environnementScore, weight: 20 },
         ]}
       />
+
+      {/* Propriete */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Propriété</CardTitle>
+          <CardDescription>Données foncières utilisées dans les calculs des phases suivantes</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="landArea">Surface terrain (m²)</Label>
+              <Input
+                id="landArea"
+                type="number"
+                value={projectInfo.landArea || ''}
+                onChange={(e) => updateProperty('landArea', parseFloat(e.target.value) || 0)}
+                placeholder="Ex: 2500"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="acquisitionPrice">Prix acquisition (€)</Label>
+              <Input
+                id="acquisitionPrice"
+                type="number"
+                value={projectInfo.acquisitionPrice || ''}
+                onChange={(e) => updateProperty('acquisitionPrice', parseFloat(e.target.value) || 0)}
+                placeholder="Ex: 500000"
+              />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* PLU Zone */}
       <Card>

@@ -324,19 +324,29 @@ export async function generatePDF(study: FeasibilityStudy): Promise<void> {
   // Budget table
   const budgetData = [
     ["DEPENSES", ""],
+    ["Travaux", formatCurrency(study.phase3.depenses.travaux.totalTravaux)],
+    ["Etudes", formatCurrency(study.phase3.depenses.etudes.totalEtudes)],
     [
-      "Acquisition fonciere",
-      formatCurrency(study.phase3.acquisition.totalAcquisition),
+      "Frais financiers",
+      formatCurrency(
+        study.phase3.depenses.fraisFinanciers.totalFraisFinanciers,
+      ),
     ],
-    [
-      "Construction",
-      formatCurrency(study.phase3.construction.totalConstruction),
-    ],
-    ["Frais annexes", formatCurrency(study.phase3.fraisAnnexes.totalAnnexes)],
+    ["Autres", formatCurrency(study.phase3.depenses.autres.totalAutres)],
     ["TOTAL DEPENSES", formatCurrency(study.phase3.budgetTotal)],
     ["", ""],
     ["RECETTES", ""],
-    ["CA Total estime", formatCurrency(study.phase3.recettes.caTotal)],
+    [
+      "Cessions (charges foncieres)",
+      formatCurrency(study.phase3.recettes.cessionsChargesFoncieres),
+    ],
+    ["Autres cessions", formatCurrency(study.phase3.recettes.autresCessions)],
+    ["Participations", formatCurrency(study.phase3.recettes.participations)],
+    [
+      "Autres (subventions)",
+      formatCurrency(study.phase3.recettes.autresSubventions),
+    ],
+    ["TOTAL RECETTES", formatCurrency(study.phase3.recettes.caTotal)],
     ["", ""],
     ["RESULTAT", ""],
     [
@@ -384,10 +394,10 @@ export async function generatePDF(study: FeasibilityStudy): Promise<void> {
   checkPageBreak(50);
   addSubtitle("Indicateurs cles");
   addText(
-    `Prix de revient: ${formatCurrency(study.phase3.indicateurs.prixRevientM2)}/m²`,
+    `Cout moyen par logement: ${formatCurrency(study.phase3.indicateurs.prixRevientM2)}/logement`,
   );
   addText(
-    `Prix de vente: ${formatCurrency(study.phase3.recettes.prixVenteM2)}/m²`,
+    `Capacite: ${study.phase3.recettes.capaciteNombreLogements} logements`,
   );
   addText(
     `Ratio foncier: ${study.phase3.indicateurs.ratioFoncier.toFixed(1)}%`,

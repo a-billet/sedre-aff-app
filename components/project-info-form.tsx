@@ -36,7 +36,7 @@ export function ProjectInfoForm({ projectInfo, onUpdate }: ProjectInfoFormProps)
               placeholder="Ex: Résidence Les Jardins"
             />
           </div>
-          
+
           <div className="space-y-2 sm:col-span-2">
             <Label htmlFor="address">Adresse</Label>
             <Input
@@ -46,7 +46,7 @@ export function ProjectInfoForm({ projectInfo, onUpdate }: ProjectInfoFormProps)
               placeholder="Ex: 12 rue de la Paix"
             />
           </div>
-          
+
           <div className="space-y-2">
             <Label htmlFor="city">Ville</Label>
             <Input
@@ -56,7 +56,7 @@ export function ProjectInfoForm({ projectInfo, onUpdate }: ProjectInfoFormProps)
               placeholder="Ex: Lyon"
             />
           </div>
-          
+
           <div className="space-y-2">
             <Label htmlFor="department">Département</Label>
             <Input
@@ -66,7 +66,7 @@ export function ProjectInfoForm({ projectInfo, onUpdate }: ProjectInfoFormProps)
               placeholder="Ex: 69 - Rhône"
             />
           </div>
-          
+
           <div className="space-y-2">
             <Label htmlFor="cadastralRef">Référence cadastrale</Label>
             <Input
@@ -74,28 +74,6 @@ export function ProjectInfoForm({ projectInfo, onUpdate }: ProjectInfoFormProps)
               value={projectInfo.cadastralRef}
               onChange={(e) => handleChange('cadastralRef', e.target.value)}
               placeholder="Ex: AB 123"
-            />
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="landArea">Surface terrain (m²)</Label>
-            <Input
-              id="landArea"
-              type="number"
-              value={projectInfo.landArea || ''}
-              onChange={(e) => handleChange('landArea', parseFloat(e.target.value) || 0)}
-              placeholder="Ex: 2500"
-            />
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="acquisitionPrice">Prix acquisition (€)</Label>
-            <Input
-              id="acquisitionPrice"
-              type="number"
-              value={projectInfo.acquisitionPrice || ''}
-              onChange={(e) => handleChange('acquisitionPrice', parseFloat(e.target.value) || 0)}
-              placeholder="Ex: 500000"
             />
           </div>
         </div>
