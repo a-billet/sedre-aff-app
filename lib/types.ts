@@ -52,46 +52,44 @@ export interface Phase1Data {
 
 // Phase 2: Analyse détaillée
 export interface Phase2Data {
-  // Règles d'urbanisme
-  urbanisme: {
-    cos: number;
-    empriseSol: number;
-    hauteurMax: number;
-    reculs: {
-      facade: number;
-      lateral: number;
-      fond: number;
-    };
-    espacesVerts: number;
+  assainissementEU: {
+    raccordement:
+      | "reseau_suffisant"
+      | "reseau_proximite"
+      | "station_relevage"
+      | "";
   };
-  urbanismeScore: number;
+  assainissementEP: {
+    raccordement: "infiltration" | "reseau_suffisant" | "reseau_proximite" | "";
+  };
+  electricite: {
+    desserte: "reseau_suffisant" | "reseau_proximite" | "lignes_aeriennes" | "";
+  };
+  telecom: {
+    desserte: "reseau_suffisant" | "reseau_proximite" | "lignes_aeriennes" | "";
+  };
+  eauPotable: {
+    desserte: "reseau_suffisant" | "reseau_proximite" | "";
+  };
+  assainissementScore: number;
+  reseauxScore: number;
 
-  // Potentiel constructible
   potentiel: {
-    surfacePlancher: number;
-    nombreLogements: number;
-    typeProgramme: "collectif" | "individuel" | "mixte" | "";
-    parkings: number;
+    operationDemonstratrice: boolean;
+    accordCommune: boolean;
+    risqueContestationLocale: "faible" | "moyen" | "fort" | "";
   };
   potentielScore: number;
 
-  // Analyse de marché
   marche: {
-    prixM2Neuf: number;
-    prixM2Ancien: number;
-    demandeLoc: "forte" | "moyenne" | "faible" | "";
-    tendance: "hausse" | "stable" | "baisse" | "";
-    delaiVente: number;
+    demandeTension: "forte" | "moyenne" | "faible" | "";
+    dynamiqueDemographique: "croissance" | "stable" | "baisse" | "";
+    concurrence: "faible" | "moderee" | "forte" | "";
+    creationEmplois: "forte" | "moderee" | "faible" | "";
+    revenusMenages: "eleves" | "intermediaires" | "faibles" | "";
+    absenceDemandeOffresVacantes: "faible" | "moyenne" | "forte" | "";
   };
   marcheScore: number;
-
-  // Concurrence
-  concurrence: {
-    programmesProches: number;
-    stockDisponible: "eleve" | "moyen" | "faible" | "";
-    positionnement: string;
-  };
-  concurrenceScore: number;
 
   // Score global Phase 2
   globalScore: number;
@@ -204,10 +202,10 @@ export interface WeightConfig {
     environnement: number;
   };
   phase2: {
-    urbanisme: number;
+    assainissement: number;
+    reseaux: number;
     potentiel: number;
     marche: number;
-    concurrence: number;
   };
   phase3: {
     margeMin: number;

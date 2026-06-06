@@ -4,15 +4,14 @@ import { useEffect } from 'react';
 import { Phase2Data } from '@/lib/types';
 import { getScoreColor, getScoreLabel } from '@/lib/config';
 import {
-  calculateUrbanismeScore,
-  calculatePotentielScore,
+  calculateAssainissementScore,
   calculateMarcheScore,
-  calculateConcurrenceScore,
   calculatePhase2GlobalScore,
+  calculatePotentielScore,
+  calculateReseauxScore,
 } from '@/lib/calculations';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import {
   Select,
@@ -26,32 +25,37 @@ import { ScoreDisplay } from '@/components/score-display';
 interface Phase2FormProps {
   data: Phase2Data;
   onUpdate: (data: Phase2Data) => void;
-  landArea: number;
 }
 
-export function Phase2Form({ data, onUpdate, landArea }: Phase2FormProps) {
-  // Recalculate scores when data changes
+export function Phase2Form({ data, onUpdate }: Phase2FormProps) {
   useEffect(() => {
-    const urbanismeScore = calculateUrbanismeScore(data.urbanisme);
-    const potentielScore = calculatePotentielScore(data.potentiel, landArea);
+    const assainissementScore = calculateAssainissementScore({
+      assainissementEU: data.assainissementEU,
+      assainissementEP: data.assainissementEP,
+    });
+    const reseauxScore = calculateReseauxScore({
+      electricite: data.electricite,
+      telecom: data.telecom,
+      eauPotable: data.eauPotable,
+    });
     const marcheScore = calculateMarcheScore(data.marche);
-    const concurrenceScore = calculateConcurrenceScore(data.concurrence);
+    const potentielScore = calculatePotentielScore(data.potentiel);
 
     const updatedData = {
       ...data,
-      urbanismeScore,
-      potentielScore,
+      assainissementScore,
+      reseauxScore,
       marcheScore,
-      concurrenceScore,
+      potentielScore,
     };
 
     const globalScore = calculatePhase2GlobalScore(updatedData);
 
     if (
-      data.urbanismeScore !== urbanismeScore ||
-      data.potentielScore !== potentielScore ||
+      data.assainissementScore !== assainissementScore ||
+      data.reseauxScore !== reseauxScore ||
       data.marcheScore !== marcheScore ||
-      data.concurrenceScore !== concurrenceScore ||
+      data.potentielScore !== potentielScore ||
       data.globalScore !== globalScore
     ) {
       onUpdate({
@@ -59,350 +63,299 @@ export function Phase2Form({ data, onUpdate, landArea }: Phase2FormProps) {
         globalScore,
       });
     }
-  }, [data, onUpdate, landArea]);
+  }, [data, onUpdate]);
 
-  const updateUrbanisme = (key: string, value: number) => {
-    if (key.includes('.')) {
-      const [parent, child] = key.split('.');
-      if (parent === 'reculs') {
-        onUpdate({
-          ...data,
-          urbanisme: {
-            ...data.urbanisme,
-            reculs: { ...data.urbanisme.reculs, [child]: value },
-          },
-        });
-      }
-    } else {
-      onUpdate({
-        ...data,
-        urbanisme: { ...data.urbanisme, [key]: value },
-      });
-    }
-  };
-
-  const updatePotentiel = (key: keyof Phase2Data['potentiel'], value: string | number | null) => {
+  const updateAssainissementEU = (
+    value: Phase2Data['assainissementEU']['raccordement'] | null,
+  ) => {
     onUpdate({
       ...data,
-      potentiel: { ...data.potentiel, [key]: value ?? '' },
+      assainissementEU: {
+        ...data.assainissementEU,
+        raccordement: value ?? '',
+      },
     });
   };
 
-  const updateMarche = (key: keyof Phase2Data['marche'], value: string | number | null) => {
+  const updateAssainissementEP = (
+    value: Phase2Data['assainissementEP']['raccordement'] | null,
+  ) => {
+    onUpdate({
+      ...data,
+      assainissementEP: {
+        ...data.assainissementEP,
+        raccordement: value ?? '',
+      },
+    });
+  };
+
+  const updateReseau = (
+    key: 'electricite' | 'telecom',
+    value: Phase2Data['electricite']['desserte'] | null,
+  ) => {
+    onUpdate({
+      ...data,
+      [key]: {
+        ...data[key],
+        desserte: value ?? '',
+      },
+    });
+  };
+
+  const updateEauPotable = (
+    value: Phase2Data['eauPotable']['desserte'] | null,
+  ) => {
+    onUpdate({
+      ...data,
+      eauPotable: {
+        ...data.eauPotable,
+        desserte: value ?? '',
+      },
+    });
+  };
+
+  const updateMarche = (
+    key: keyof Phase2Data['marche'],
+    value: Phase2Data['marche'][keyof Phase2Data['marche']] | null,
+  ) => {
     onUpdate({
       ...data,
       marche: { ...data.marche, [key]: value ?? '' },
     });
   };
 
-  const updateConcurrence = (key: keyof Phase2Data['concurrence'], value: string | number | null) => {
+  const updatePotentiel = (
+    key: keyof Phase2Data['potentiel'],
+    value: boolean | Phase2Data['potentiel'][keyof Phase2Data['potentiel']] | null,
+  ) => {
     onUpdate({
       ...data,
-      concurrence: { ...data.concurrence, [key]: value ?? '' },
+      potentiel: { ...data.potentiel, [key]: value ?? '' },
     });
   };
 
   return (
     <div className="space-y-6">
-      {/* Global Score Card */}
       <ScoreDisplay
         title="Score Phase 2 - Analyse détaillée"
         score={data.globalScore}
         details={[
-          { label: 'Règles urbanisme', score: data.urbanismeScore, weight: 30 },
-          { label: 'Potentiel constructible', score: data.potentielScore, weight: 30 },
-          { label: 'Analyse marché', score: data.marcheScore, weight: 25 },
-          { label: 'Concurrence', score: data.concurrenceScore, weight: 15 },
+          { label: 'Assainissement', score: data.assainissementScore, weight: 30 },
+          { label: 'Réseaux', score: data.reseauxScore, weight: 25 },
+          { label: 'Marché', score: data.marcheScore, weight: 25 },
+          { label: 'Potentiel', score: data.potentielScore, weight: 20 },
         ]}
       />
 
-      {/* Règles d'urbanisme */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
-            <span>Règles d&apos;urbanisme</span>
-            <span className="text-sm font-normal" style={{ color: getScoreColor(data.urbanismeScore) }}>
-              {data.urbanismeScore}/100 - {getScoreLabel(data.urbanismeScore)}
+            <span>Assainissement</span>
+            <span className="text-sm font-normal" style={{ color: getScoreColor(data.assainissementScore) }}>
+              {data.assainissementScore}/100 - {getScoreLabel(data.assainissementScore)}
             </span>
           </CardTitle>
-          <CardDescription>Paramètres réglementaires du PLU</CardDescription>
+          <CardDescription>Possibilités de raccordement EU et EP</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            <div className="space-y-2">
-              <Label htmlFor="empriseSol">Emprise au sol max (%)</Label>
-              <Input
-                id="empriseSol"
-                type="number"
-                value={data.urbanisme.empriseSol || ''}
-                onChange={(e) => updateUrbanisme('empriseSol', parseFloat(e.target.value) || 0)}
-                placeholder="Ex: 60"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="hauteurMax">Hauteur maximale (m)</Label>
-              <Input
-                id="hauteurMax"
-                type="number"
-                value={data.urbanisme.hauteurMax || ''}
-                onChange={(e) => updateUrbanisme('hauteurMax', parseFloat(e.target.value) || 0)}
-                placeholder="Ex: 12"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="espacesVerts">Espaces verts min (%)</Label>
-              <Input
-                id="espacesVerts"
-                type="number"
-                value={data.urbanisme.espacesVerts || ''}
-                onChange={(e) => updateUrbanisme('espacesVerts', parseFloat(e.target.value) || 0)}
-                placeholder="Ex: 20"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="reculFacade">Recul façade (m)</Label>
-              <Input
-                id="reculFacade"
-                type="number"
-                value={data.urbanisme.reculs.facade || ''}
-                onChange={(e) => updateUrbanisme('reculs.facade', parseFloat(e.target.value) || 0)}
-                placeholder="Ex: 5"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="reculLateral">Recul latéral (m)</Label>
-              <Input
-                id="reculLateral"
-                type="number"
-                value={data.urbanisme.reculs.lateral || ''}
-                onChange={(e) => updateUrbanisme('reculs.lateral', parseFloat(e.target.value) || 0)}
-                placeholder="Ex: 3"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="reculFond">Recul fond (m)</Label>
-              <Input
-                id="reculFond"
-                type="number"
-                value={data.urbanisme.reculs.fond || ''}
-                onChange={(e) => updateUrbanisme('reculs.fond', parseFloat(e.target.value) || 0)}
-                placeholder="Ex: 6"
-              />
-            </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <SelectField
+              id="assainissementEU"
+              label="Assainissement EU"
+              value={data.assainissementEU.raccordement}
+              onValueChange={(value) => updateAssainissementEU(value as Phase2Data['assainissementEU']['raccordement'])}
+              options={[
+                { value: 'reseau_suffisant', label: 'Collecteur + réseau suffisant' },
+                { value: 'reseau_proximite', label: 'Collecteur + réseau à proximité' },
+                { value: 'station_relevage', label: 'Nécessité de station de relevage' },
+              ]}
+            />
+            <SelectField
+              id="assainissementEP"
+              label="Assainissement EP"
+              value={data.assainissementEP.raccordement}
+              onValueChange={(value) => updateAssainissementEP(value as Phase2Data['assainissementEP']['raccordement'])}
+              options={[
+                { value: 'infiltration', label: 'Sols garantissant l\'infiltration / GIEP' },
+                { value: 'reseau_suffisant', label: 'Collecteur + réseau suffisant' },
+                { value: 'reseau_proximite', label: 'Collecteur + réseau à proximité' },
+              ]}
+            />
           </div>
         </CardContent>
       </Card>
 
-      {/* Potentiel constructible */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
-            <span>Potentiel constructible</span>
-            <span className="text-sm font-normal" style={{ color: getScoreColor(data.potentielScore) }}>
-              {data.potentielScore}/100 - {getScoreLabel(data.potentielScore)}
+            <span>Réseaux</span>
+            <span className="text-sm font-normal" style={{ color: getScoreColor(data.reseauxScore) }}>
+              {data.reseauxScore}/100 - {getScoreLabel(data.reseauxScore)}
             </span>
           </CardTitle>
-          <CardDescription>Estimation du programme réalisable</CardDescription>
+          <CardDescription>Électricité, telecom et eau potable</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <div className="space-y-2">
-              <Label htmlFor="surfacePlancher">Surface plancher (m²)</Label>
-              <Input
-                id="surfacePlancher"
-                type="number"
-                value={data.potentiel.surfacePlancher || ''}
-                onChange={(e) => updatePotentiel('surfacePlancher', parseFloat(e.target.value) || 0)}
-                placeholder="Ex: 3000"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="nombreLogements">Nombre de logements</Label>
-              <Input
-                id="nombreLogements"
-                type="number"
-                value={data.potentiel.nombreLogements || ''}
-                onChange={(e) => updatePotentiel('nombreLogements', parseInt(e.target.value) || 0)}
-                placeholder="Ex: 30"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="typeProgramme">Type de programme</Label>
-              <Select
-                value={data.potentiel.typeProgramme}
-                onValueChange={(value) => updatePotentiel('typeProgramme', value)}
-              >
-                <SelectTrigger id="typeProgramme">
-                  <SelectValue placeholder="Sélectionner" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="collectif">Collectif</SelectItem>
-                  <SelectItem value="individuel">Individuel groupé</SelectItem>
-                  <SelectItem value="mixte">Mixte</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="parkings">Nombre de parkings</Label>
-              <Input
-                id="parkings"
-                type="number"
-                value={data.potentiel.parkings || ''}
-                onChange={(e) => updatePotentiel('parkings', parseInt(e.target.value) || 0)}
-                placeholder="Ex: 45"
-              />
-            </div>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-2">
+            <SelectField
+              id="electricite"
+              label="Electricité"
+              value={data.electricite.desserte}
+              onValueChange={(value) => updateReseau('electricite', value as Phase2Data['electricite']['desserte'])}
+              options={[
+                { value: 'reseau_suffisant', label: 'Poste Transfo + réseau suffisant' },
+                { value: 'reseau_proximite', label: 'Poste Transfo + réseau à proximité' },
+                { value: 'lignes_aeriennes', label: 'Lignes aériennes' },
+              ]}
+            />
+            <SelectField
+              id="telecom"
+              label="Telecom"
+              value={data.telecom.desserte}
+              onValueChange={(value) => updateReseau('telecom', value as Phase2Data['telecom']['desserte'])}
+              options={[
+                { value: 'reseau_suffisant', label: 'Réseau suffisant' },
+                { value: 'reseau_proximite', label: 'Réseau à proximité' },
+                { value: 'lignes_aeriennes', label: 'Lignes aériennes' },
+              ]}
+            />
+            <SelectField
+              id="eauPotable"
+              label="Eau potable"
+              value={data.eauPotable.desserte}
+              onValueChange={(value) => updateEauPotable(value as Phase2Data['eauPotable']['desserte'])}
+              options={[
+                { value: 'reseau_suffisant', label: 'Réseau suffisant' },
+                { value: 'reseau_proximite', label: 'Réseau à proximité' },
+              ]}
+            />
           </div>
-          {landArea > 0 && data.potentiel.surfacePlancher > 0 && (
-            <div className="mt-4 p-3 bg-muted rounded-lg text-sm">
-              <strong>Densité:</strong> {(data.potentiel.surfacePlancher / landArea).toFixed(2)} (SDP/terrain)
-              {data.potentiel.nombreLogements > 0 && (
-                <span className="ml-4">
-                  <strong>Surface moy./logement:</strong> {Math.round(data.potentiel.surfacePlancher / data.potentiel.nombreLogements)} m²
-                </span>
-              )}
-            </div>
-          )}
         </CardContent>
       </Card>
 
-      {/* Analyse de marché */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
-            <span>Analyse de marché</span>
+            <span>Attentes et état du marché</span>
             <span className="text-sm font-normal" style={{ color: getScoreColor(data.marcheScore) }}>
               {data.marcheScore}/100 - {getScoreLabel(data.marcheScore)}
             </span>
           </CardTitle>
-          <CardDescription>État du marché immobilier local</CardDescription>
+          <CardDescription>Appréciation qualitative de la profondeur et de la solidité du marché</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            <div className="space-y-2">
-              <Label htmlFor="prixM2Neuf">Prix m² neuf (€)</Label>
-              <Input
-                id="prixM2Neuf"
-                type="number"
-                value={data.marche.prixM2Neuf || ''}
-                onChange={(e) => updateMarche('prixM2Neuf', parseFloat(e.target.value) || 0)}
-                placeholder="Ex: 4500"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="prixM2Ancien">Prix m² ancien (€)</Label>
-              <Input
-                id="prixM2Ancien"
-                type="number"
-                value={data.marche.prixM2Ancien || ''}
-                onChange={(e) => updateMarche('prixM2Ancien', parseFloat(e.target.value) || 0)}
-                placeholder="Ex: 3500"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="delaiVente">Délai de vente moyen (mois)</Label>
-              <Input
-                id="delaiVente"
-                type="number"
-                value={data.marche.delaiVente || ''}
-                onChange={(e) => updateMarche('delaiVente', parseInt(e.target.value) || 0)}
-                placeholder="Ex: 8"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="demandeLoc">Demande locative</Label>
-              <Select
-                value={data.marche.demandeLoc}
-                onValueChange={(value) => updateMarche('demandeLoc', value)}
-              >
-                <SelectTrigger id="demandeLoc">
-                  <SelectValue placeholder="Sélectionner" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="forte">Forte</SelectItem>
-                  <SelectItem value="moyenne">Moyenne</SelectItem>
-                  <SelectItem value="faible">Faible</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="tendance">Tendance du marché</Label>
-              <Select
-                value={data.marche.tendance}
-                onValueChange={(value) => updateMarche('tendance', value)}
-              >
-                <SelectTrigger id="tendance">
-                  <SelectValue placeholder="Sélectionner" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="hausse">En hausse</SelectItem>
-                  <SelectItem value="stable">Stable</SelectItem>
-                  <SelectItem value="baisse">En baisse</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-2">
+            <SelectField
+              id="demandeTension"
+              label="Demande, tension"
+              value={data.marche.demandeTension}
+              onValueChange={(value) => updateMarche('demandeTension', value as Phase2Data['marche']['demandeTension'])}
+              options={[
+                { value: 'forte', label: 'Forte' },
+                { value: 'moyenne', label: 'Moyenne' },
+                { value: 'faible', label: 'Faible' },
+              ]}
+            />
+            <SelectField
+              id="dynamiqueDemographique"
+              label="Dynamique démographique"
+              value={data.marche.dynamiqueDemographique}
+              onValueChange={(value) => updateMarche('dynamiqueDemographique', value as Phase2Data['marche']['dynamiqueDemographique'])}
+              options={[
+                { value: 'croissance', label: 'Croissance' },
+                { value: 'stable', label: 'Stable' },
+                { value: 'baisse', label: 'Baisse' },
+              ]}
+            />
+            <SelectField
+              id="concurrence"
+              label="Concurrence"
+              value={data.marche.concurrence}
+              onValueChange={(value) => updateMarche('concurrence', value as Phase2Data['marche']['concurrence'])}
+              options={[
+                { value: 'faible', label: 'Faible' },
+                { value: 'moderee', label: 'Modérée' },
+                { value: 'forte', label: 'Forte' },
+              ]}
+            />
+            <SelectField
+              id="creationEmplois"
+              label="Création d'emplois"
+              value={data.marche.creationEmplois}
+              onValueChange={(value) => updateMarche('creationEmplois', value as Phase2Data['marche']['creationEmplois'])}
+              options={[
+                { value: 'forte', label: 'Forte' },
+                { value: 'moderee', label: 'Modérée' },
+                { value: 'faible', label: 'Faible' },
+              ]}
+            />
+            <SelectField
+              id="revenusMenages"
+              label="Revenus des ménages"
+              value={data.marche.revenusMenages}
+              onValueChange={(value) => updateMarche('revenusMenages', value as Phase2Data['marche']['revenusMenages'])}
+              options={[
+                { value: 'eleves', label: 'Élevés' },
+                { value: 'intermediaires', label: 'Intermédiaires' },
+                { value: 'faibles', label: 'Faibles' },
+              ]}
+            />
+            <SelectField
+              id="absenceDemandeOffresVacantes"
+              label="Absence de demande, offres vacantes"
+              value={data.marche.absenceDemandeOffresVacantes}
+              onValueChange={(value) => updateMarche('absenceDemandeOffresVacantes', value as Phase2Data['marche']['absenceDemandeOffresVacantes'])}
+              options={[
+                { value: 'faible', label: 'Faible' },
+                { value: 'moyenne', label: 'Moyenne' },
+                { value: 'forte', label: 'Forte' },
+              ]}
+            />
           </div>
-          {data.marche.prixM2Neuf > 0 && data.marche.prixM2Ancien > 0 && (
-            <div className="mt-4 p-3 bg-muted rounded-lg text-sm">
-              <strong>Écart neuf/ancien:</strong> {Math.round(((data.marche.prixM2Neuf - data.marche.prixM2Ancien) / data.marche.prixM2Ancien) * 100)}%
-            </div>
-          )}
         </CardContent>
       </Card>
 
-      {/* Concurrence */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
-            <span>Concurrence</span>
-            <span className="text-sm font-normal" style={{ color: getScoreColor(data.concurrenceScore) }}>
-              {data.concurrenceScore}/100 - {getScoreLabel(data.concurrenceScore)}
+            <span>Potentiel</span>
+            <span className="text-sm font-normal" style={{ color: getScoreColor(data.potentielScore) }}>
+              {data.potentielScore}/100 - {getScoreLabel(data.potentielScore)}
             </span>
           </CardTitle>
-          <CardDescription>Programmes concurrents à proximité</CardDescription>
+          <CardDescription>Lecture politique et opérationnelle du projet</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid gap-4 sm:grid-cols-3">
-            <div className="space-y-2">
-              <Label htmlFor="programmesProches">Programmes proches</Label>
-              <Input
-                id="programmesProches"
-                type="number"
-                value={data.concurrence.programmesProches || ''}
-                onChange={(e) => updateConcurrence('programmesProches', parseInt(e.target.value) || 0)}
-                placeholder="Ex: 3"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="stockDisponible">Stock disponible</Label>
-              <Select
-                value={data.concurrence.stockDisponible}
-                onValueChange={(value) => updateConcurrence('stockDisponible', value)}
-              >
-                <SelectTrigger id="stockDisponible">
-                  <SelectValue placeholder="Sélectionner" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="faible">Faible</SelectItem>
-                  <SelectItem value="moyen">Moyen</SelectItem>
-                  <SelectItem value="eleve">Élevé</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2 sm:col-span-3">
-              <Label htmlFor="positionnement">Positionnement / différenciation</Label>
-              <Input
-                id="positionnement"
-                value={data.concurrence.positionnement}
-                onChange={(e) => updateConcurrence('positionnement', e.target.value)}
-                placeholder="Ex: Prestations haut de gamme, terrasses..."
-              />
-            </div>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-2">
+            <CheckboxField
+              id="operationDemonstratrice"
+              label="Opération démonstratrice"
+              checked={data.potentiel.operationDemonstratrice}
+              onChange={(checked) => updatePotentiel('operationDemonstratrice', checked)}
+              impact="Exemplarité"
+            />
+            <CheckboxField
+              id="accordCommune"
+              label="Accord de la commune"
+              checked={data.potentiel.accordCommune}
+              onChange={(checked) => updatePotentiel('accordCommune', checked)}
+              impact="Acceptabilité"
+            />
+            <SelectField
+              id="risqueContestationLocale"
+              label="Risque de contestation locale"
+              value={data.potentiel.risqueContestationLocale}
+              onValueChange={(value) => updatePotentiel('risqueContestationLocale', value as Phase2Data['potentiel']['risqueContestationLocale'])}
+              options={[
+                { value: 'faible', label: 'Faible' },
+                { value: 'moyen', label: 'Moyen' },
+                { value: 'fort', label: 'Fort' },
+              ]}
+            />
           </div>
         </CardContent>
       </Card>
 
-      {/* Comments */}
       <Card>
         <CardHeader>
           <CardTitle>Commentaires Phase 2</CardTitle>
@@ -417,5 +370,70 @@ export function Phase2Form({ data, onUpdate, landArea }: Phase2FormProps) {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+function SelectField({
+  id,
+  label,
+  value,
+  onValueChange,
+  options,
+}: {
+  id: string;
+  label: string;
+  value: string;
+  onValueChange: (value: string | null) => void;
+  options: Array<{ value: string; label: string }>;
+}) {
+  return (
+    <div className="space-y-2">
+      <Label htmlFor={id}>{label}</Label>
+      <Select value={value} onValueChange={onValueChange}>
+        <SelectTrigger id={id} className="w-full sm:w-md max-w-full">
+          <SelectValue placeholder="Sélectionner" />
+        </SelectTrigger>
+        <SelectContent>
+          {options.map((option) => (
+            <SelectItem key={option.value} value={option.value}>
+              {option.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
+  );
+}
+
+function CheckboxField({
+  id,
+  label,
+  checked,
+  onChange,
+  impact,
+}: {
+  id: string;
+  label: string;
+  checked: boolean;
+  onChange: (checked: boolean) => void;
+  impact: string;
+}) {
+  return (
+    <label
+      htmlFor={id}
+      className="flex cursor-pointer items-center gap-3 rounded-lg border border-border p-3 transition-colors hover:bg-muted/50"
+    >
+      <input
+        type="checkbox"
+        id={id}
+        checked={checked}
+        onChange={(e) => onChange(e.target.checked)}
+        className="h-4 w-4 rounded border-input text-primary focus:ring-primary"
+      />
+      <div className="flex-1">
+        <span className="text-sm font-medium">{label}</span>
+      </div>
+      <span className="text-xs text-muted-foreground">{impact}</span>
+    </label>
   );
 }

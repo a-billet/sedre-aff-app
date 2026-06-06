@@ -181,14 +181,13 @@ export default function Page() {
             <Phase2Form
               data={currentStudy.phase2}
               onUpdate={handleUpdatePhase2}
-              landArea={currentStudy.projectInfo.landArea}
             />
           )}
           {currentStudy.currentPhase === 3 && (
             <Phase3Form
               data={currentStudy.phase3}
               onUpdate={handleUpdatePhase3}
-              housingCapacity={currentStudy.phase2.potentiel.nombreLogements}
+              housingCapacity={0}
             />
           )}
           {currentStudy.currentPhase === 4 && (

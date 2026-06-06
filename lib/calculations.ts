@@ -9,7 +9,6 @@ import {
   defaultWeights,
   pluZoneScores,
   accessibilityScores,
-  marketScores,
   getRecommendation,
 } from "./config";
 
@@ -88,123 +87,203 @@ export function calculatePhase1GlobalScore(phase1: Phase1Data): number {
 
 // === Calculs Phase 2 ===
 
-export function calculateUrbanismeScore(
-  urbanisme: Phase2Data["urbanisme"],
+const phase2OptionScores = {
+  assainissementEU: {
+    reseau_suffisant: 100,
+    reseau_proximite: 70,
+    station_relevage: 35,
+    "": 0,
+  },
+  assainissementEP: {
+    infiltration: 100,
+    reseau_suffisant: 85,
+    reseau_proximite: 60,
+    "": 0,
+  },
+  reseaux: {
+    reseau_suffisant: 100,
+    reseau_proximite: 70,
+    lignes_aeriennes: 35,
+    "": 0,
+  },
+  eauPotable: {
+    reseau_suffisant: 100,
+    reseau_proximite: 70,
+    "": 0,
+  },
+  demandeTension: {
+    forte: 100,
+    moyenne: 60,
+    faible: 25,
+    "": 0,
+  },
+  dynamiqueDemographique: {
+    croissance: 100,
+    stable: 65,
+    baisse: 25,
+    "": 0,
+  },
+  concurrence: {
+    faible: 100,
+    moderee: 65,
+    forte: 25,
+    "": 0,
+  },
+  creationEmplois: {
+    forte: 100,
+    moderee: 65,
+    faible: 30,
+    "": 0,
+  },
+  revenusMenages: {
+    eleves: 100,
+    intermediaires: 65,
+    faibles: 30,
+    "": 0,
+  },
+  absenceDemandeOffresVacantes: {
+    faible: 100,
+    moyenne: 55,
+    forte: 15,
+    "": 0,
+  },
+  contestation: {
+    faible: 100,
+    moyen: 55,
+    fort: 15,
+    "": 0,
+  },
+} as const;
+
+function calculateWeightedAverage(
+  entries: Array<{ score: number; weight: number }>,
 ): number {
-  // Score basé sur les possibilités d'urbanisme
-  let score = 50; // Base
+  const populatedEntries = entries.filter((entry) => entry.score > 0);
 
-  // Bonus pour emprise au sol élevée
-  if (urbanisme.empriseSol >= 60) score += 20;
-  else if (urbanisme.empriseSol >= 40) score += 10;
+  if (populatedEntries.length === 0) {
+    return 0;
+  }
 
-  // Bonus pour hauteur élevée
-  if (urbanisme.hauteurMax >= 15) score += 20;
-  else if (urbanisme.hauteurMax >= 9) score += 10;
+  const totalWeight = populatedEntries.reduce(
+    (sum, entry) => sum + entry.weight,
+    0,
+  );
+  const weightedScore = populatedEntries.reduce(
+    (sum, entry) => sum + entry.score * entry.weight,
+    0,
+  );
 
-  // Pénalité pour grands reculs
-  const avgRecul =
-    (urbanisme.reculs.facade +
-      urbanisme.reculs.lateral +
-      urbanisme.reculs.fond) /
-    3;
-  if (avgRecul > 6) score -= 10;
+  return Math.round(weightedScore / totalWeight);
+}
 
-  // Pénalité pour trop d'espaces verts obligatoires
-  if (urbanisme.espacesVerts > 40) score -= 10;
+export function calculateAssainissementScore(
+  phase2: Pick<Phase2Data, "assainissementEU" | "assainissementEP">,
+): number {
+  return calculateWeightedAverage([
+    {
+      score:
+        phase2OptionScores.assainissementEU[
+          phase2.assainissementEU.raccordement
+        ],
+      weight: 55,
+    },
+    {
+      score:
+        phase2OptionScores.assainissementEP[
+          phase2.assainissementEP.raccordement
+        ],
+      weight: 45,
+    },
+  ]);
+}
 
-  return Math.min(100, Math.max(0, score));
+export function calculateReseauxScore(
+  phase2: Pick<Phase2Data, "electricite" | "telecom" | "eauPotable">,
+): number {
+  return calculateWeightedAverage([
+    {
+      score: phase2OptionScores.reseaux[phase2.electricite.desserte],
+      weight: 40,
+    },
+    {
+      score: phase2OptionScores.reseaux[phase2.telecom.desserte],
+      weight: 25,
+    },
+    {
+      score: phase2OptionScores.eauPotable[phase2.eauPotable.desserte],
+      weight: 35,
+    },
+  ]);
+}
+
+export function calculateMarcheScore(marche: Phase2Data["marche"]): number {
+  return calculateWeightedAverage([
+    {
+      score: phase2OptionScores.demandeTension[marche.demandeTension],
+      weight: 25,
+    },
+    {
+      score:
+        phase2OptionScores.dynamiqueDemographique[
+          marche.dynamiqueDemographique
+        ],
+      weight: 15,
+    },
+    {
+      score: phase2OptionScores.concurrence[marche.concurrence],
+      weight: 20,
+    },
+    {
+      score: phase2OptionScores.creationEmplois[marche.creationEmplois],
+      weight: 15,
+    },
+    {
+      score: phase2OptionScores.revenusMenages[marche.revenusMenages],
+      weight: 10,
+    },
+    {
+      score:
+        phase2OptionScores.absenceDemandeOffresVacantes[
+          marche.absenceDemandeOffresVacantes
+        ],
+      weight: 15,
+    },
+  ]);
 }
 
 export function calculatePotentielScore(
   potentiel: Phase2Data["potentiel"],
-  landArea: number,
 ): number {
-  if (landArea === 0 || potentiel.surfacePlancher === 0) return 0;
-
-  // Ratio de densité
-  const densityRatio = potentiel.surfacePlancher / landArea;
-  let score = 50;
-
-  if (densityRatio >= 2) score += 30;
-  else if (densityRatio >= 1.5) score += 20;
-  else if (densityRatio >= 1) score += 10;
-  else if (densityRatio < 0.5) score -= 20;
-
-  // Bonus si parking suffisant
-  if (potentiel.nombreLogements > 0) {
-    const parkingRatio = potentiel.parkings / potentiel.nombreLogements;
-    if (parkingRatio >= 1.5) score += 15;
-    else if (parkingRatio >= 1) score += 10;
-    else score -= 10;
-  }
-
-  return Math.min(100, Math.max(0, score));
-}
-
-export function calculateMarcheScore(marche: Phase2Data["marche"]): number {
-  const scores: number[] = [];
-
-  if (marche.demandeLoc) {
-    scores.push(marketScores.demandeLoc[marche.demandeLoc]);
-  }
-  if (marche.tendance) {
-    scores.push(marketScores.tendance[marche.tendance]);
-  }
-
-  // Score basé sur le délai de vente
-  if (marche.delaiVente > 0) {
-    if (marche.delaiVente <= 6) scores.push(100);
-    else if (marche.delaiVente <= 12) scores.push(70);
-    else if (marche.delaiVente <= 18) scores.push(50);
-    else scores.push(30);
-  }
-
-  // Score basé sur l'écart neuf/ancien
-  if (marche.prixM2Neuf > 0 && marche.prixM2Ancien > 0) {
-    const ecart =
-      ((marche.prixM2Neuf - marche.prixM2Ancien) / marche.prixM2Ancien) * 100;
-    if (ecart <= 20) scores.push(90);
-    else if (ecart <= 30) scores.push(70);
-    else if (ecart <= 40) scores.push(50);
-    else scores.push(30);
-  }
-
-  if (scores.length === 0) return 0;
-  return Math.round(scores.reduce((a, b) => a + b, 0) / scores.length);
-}
-
-export function calculateConcurrenceScore(
-  concurrence: Phase2Data["concurrence"],
-): number {
-  let score = 70; // Base
-
-  // Pénalité pour beaucoup de programmes proches
-  if (concurrence.programmesProches > 5) score -= 20;
-  else if (concurrence.programmesProches > 2) score -= 10;
-
-  // Score basé sur le stock disponible
-  if (concurrence.stockDisponible) {
-    score +=
-      (marketScores.stockDisponible[concurrence.stockDisponible] - 50) / 2;
-  }
-
-  return Math.min(100, Math.max(0, Math.round(score)));
+  return calculateWeightedAverage([
+    {
+      score: potentiel.operationDemonstratrice ? 100 : 35,
+      weight: 30,
+    },
+    {
+      score: potentiel.accordCommune ? 100 : 20,
+      weight: 40,
+    },
+    {
+      score:
+        phase2OptionScores.contestation[potentiel.risqueContestationLocale],
+      weight: 30,
+    },
+  ]);
 }
 
 export function calculatePhase2GlobalScore(phase2: Phase2Data): number {
   const weights = defaultWeights.phase2;
   const totalWeight =
-    weights.urbanisme +
+    weights.assainissement +
+    weights.reseaux +
     weights.potentiel +
-    weights.marche +
-    weights.concurrence;
+    weights.marche;
 
   const weightedScore =
-    (phase2.urbanismeScore * weights.urbanisme +
+    (phase2.assainissementScore * weights.assainissement +
+      phase2.reseauxScore * weights.reseaux +
       phase2.potentielScore * weights.potentiel +
-      phase2.marcheScore * weights.marche +
-      phase2.concurrenceScore * weights.concurrence) /
+      phase2.marcheScore * weights.marche) /
     totalWeight;
 
   return Math.round(weightedScore);
@@ -374,21 +453,27 @@ export function generateAutoSWOT(study: FeasibilityStudy): Phase4Data["swot"] {
 
   // Analyse Phase 2
   if (study.phase2.marcheScore >= 70) {
-    opportunites.push("Marché immobilier dynamique");
+    opportunites.push("Marche local porteur");
   } else if (study.phase2.marcheScore < 50) {
-    menaces.push("Marché immobilier atone");
+    menaces.push("Marche local peu favorable");
   }
 
-  if (study.phase2.concurrenceScore >= 70) {
-    opportunites.push("Faible concurrence");
-  } else if (study.phase2.concurrenceScore < 50) {
-    menaces.push("Forte concurrence");
+  if (study.phase2.assainissementScore >= 70) {
+    forces.push("Conditions d'assainissement favorables");
+  } else if (study.phase2.assainissementScore < 50) {
+    menaces.push("Contraintes d'assainissement importantes");
+  }
+
+  if (study.phase2.reseauxScore >= 70) {
+    forces.push("Raccordements reseaux favorables");
+  } else if (study.phase2.reseauxScore < 50) {
+    faiblesses.push("Raccordements reseaux a renforcer");
   }
 
   if (study.phase2.potentielScore >= 70) {
-    forces.push("Fort potentiel constructible");
+    forces.push("Bon alignement local du potentiel de projet");
   } else if (study.phase2.potentielScore < 50) {
-    faiblesses.push("Potentiel constructible limité");
+    faiblesses.push("Portage local du projet incertain");
   }
 
   // Analyse Phase 3

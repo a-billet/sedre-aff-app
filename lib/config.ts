@@ -17,10 +17,10 @@ export const defaultWeights: WeightConfig = {
     environnement: 20,
   },
   phase2: {
-    urbanisme: 30,
-    potentiel: 30,
+    assainissement: 30,
+    reseaux: 25,
+    potentiel: 20,
     marche: 25,
-    concurrence: 15,
   },
   phase3: {
     margeMin: 15, // % minimum de marge promotion
@@ -72,25 +72,6 @@ export const accessibilityScores = {
     facile: 100,
     moyen: 60,
     difficile: 30,
-  },
-};
-
-// Scores pour l'analyse de marché
-export const marketScores = {
-  demandeLoc: {
-    forte: 100,
-    moyenne: 60,
-    faible: 30,
-  },
-  tendance: {
-    hausse: 100,
-    stable: 70,
-    baisse: 30,
-  },
-  stockDisponible: {
-    faible: 100,
-    moyen: 60,
-    eleve: 30,
   },
 };
 
@@ -188,39 +169,38 @@ export const initialPhase1: Phase1Data = {
 };
 
 export const initialPhase2: Phase2Data = {
-  urbanisme: {
-    cos: 0,
-    empriseSol: 0,
-    hauteurMax: 0,
-    reculs: {
-      facade: 0,
-      lateral: 0,
-      fond: 0,
-    },
-    espacesVerts: 0,
+  assainissementEU: {
+    raccordement: "",
   },
-  urbanismeScore: 0,
+  assainissementEP: {
+    raccordement: "",
+  },
+  electricite: {
+    desserte: "",
+  },
+  telecom: {
+    desserte: "",
+  },
+  eauPotable: {
+    desserte: "",
+  },
+  assainissementScore: 0,
+  reseauxScore: 0,
   potentiel: {
-    surfacePlancher: 0,
-    nombreLogements: 0,
-    typeProgramme: "",
-    parkings: 0,
+    operationDemonstratrice: false,
+    accordCommune: false,
+    risqueContestationLocale: "",
   },
   potentielScore: 0,
   marche: {
-    prixM2Neuf: 0,
-    prixM2Ancien: 0,
-    demandeLoc: "",
-    tendance: "",
-    delaiVente: 0,
+    demandeTension: "",
+    dynamiqueDemographique: "",
+    concurrence: "",
+    creationEmplois: "",
+    revenusMenages: "",
+    absenceDemandeOffresVacantes: "",
   },
   marcheScore: 0,
-  concurrence: {
-    programmesProches: 0,
-    stockDisponible: "",
-    positionnement: "",
-  },
-  concurrenceScore: 0,
   globalScore: 0,
   comments: "",
 };

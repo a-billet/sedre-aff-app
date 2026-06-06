@@ -140,7 +140,7 @@ export function Phase1Form({ data, onUpdate, projectInfo, onUpdateProjectInfo }:
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
-            <span>Zonage PLU</span>
+            <span>PLU et réglementation</span>
             <span className="text-sm font-normal" style={{ color: getScoreColor(data.pluZoneScore) }}>
               {data.pluZoneScore}/100 - {getScoreLabel(data.pluZoneScore)}
             </span>
@@ -154,7 +154,7 @@ export function Phase1Form({ data, onUpdate, projectInfo, onUpdateProjectInfo }:
               value={data.pluZone}
               onValueChange={(value) => onUpdate({ ...data, pluZone: value as Phase1Data['pluZone'] })}
             >
-              <SelectTrigger id="pluZone">
+              <SelectTrigger id="pluZone" className="w-full sm:w-md">
                 <SelectValue placeholder="Sélectionner une zone" />
               </SelectTrigger>
               <SelectContent>
@@ -235,14 +235,14 @@ export function Phase1Form({ data, onUpdate, projectInfo, onUpdateProjectInfo }:
           <CardDescription>Desserte et accessibilité du terrain</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid gap-4 sm:grid-cols-3">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="transport">Transports en commun</Label>
               <Select
                 value={data.accessibilite.transportEnCommun}
                 onValueChange={(value) => updateAccessibilite('transportEnCommun', value)}
               >
-                <SelectTrigger id="transport">
+                <SelectTrigger id="transport" className="w-full sm:w-md max-w-full">
                   <SelectValue placeholder="Sélectionner" />
                 </SelectTrigger>
                 <SelectContent>
@@ -259,7 +259,7 @@ export function Phase1Form({ data, onUpdate, projectInfo, onUpdateProjectInfo }:
                 value={data.accessibilite.axesRoutiers}
                 onValueChange={(value) => updateAccessibilite('axesRoutiers', value)}
               >
-                <SelectTrigger id="axes">
+                <SelectTrigger id="axes" className="w-full sm:w-md max-w-full">
                   <SelectValue placeholder="Sélectionner" />
                 </SelectTrigger>
                 <SelectContent>
@@ -276,7 +276,7 @@ export function Phase1Form({ data, onUpdate, projectInfo, onUpdateProjectInfo }:
                 value={data.accessibilite.stationnement}
                 onValueChange={(value) => updateAccessibilite('stationnement', value)}
               >
-                <SelectTrigger id="stationnement">
+                <SelectTrigger id="stationnement" className="w-full sm:w-md max-w-full">
                   <SelectValue placeholder="Sélectionner" />
                 </SelectTrigger>
                 <SelectContent>

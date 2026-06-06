@@ -100,10 +100,10 @@ export async function generatePDF(study: FeasibilityStudy): Promise<void> {
     ],
     ["Prix acquisition", formatCurrency(study.projectInfo.acquisitionPrice)],
     [
-      "Surface plancher",
-      `${study.phase2.potentiel.surfacePlancher.toLocaleString("fr-FR")} m²`,
+      "Assainissement EU",
+      study.phase2.assainissementEU.raccordement || "Non renseigne",
     ],
-    ["Nombre de logements", study.phase2.potentiel.nombreLogements.toString()],
+    ["Accord commune", study.phase2.potentiel.accordCommune ? "Oui" : "Non"],
   ];
 
   autoTable(doc, {
@@ -269,47 +269,64 @@ export async function generatePDF(study: FeasibilityStudy): Promise<void> {
   );
   yPos += 5;
 
-  // Urbanisme
-  addSubtitle("Regles d'urbanisme");
-  addText(`Emprise au sol max: ${study.phase2.urbanisme.empriseSol}%`);
-  addText(`Hauteur max: ${study.phase2.urbanisme.hauteurMax} m`);
-  addText(`Espaces verts min: ${study.phase2.urbanisme.espacesVerts}%`);
-  addText(`Score: ${study.phase2.urbanismeScore}/100`);
+  // Assainissement
+  addSubtitle("Assainissement");
+  addText(
+    `EU: ${study.phase2.assainissementEU.raccordement || "Non renseigne"}`,
+  );
+  addText(
+    `EP: ${study.phase2.assainissementEP.raccordement || "Non renseigne"}`,
+  );
+  addText(`Score: ${study.phase2.assainissementScore}/100`);
+  yPos += 5;
+
+  // Reseaux
+  addSubtitle("Reseaux");
+  addText(
+    `Electricite: ${study.phase2.electricite.desserte || "Non renseigne"}`,
+  );
+  addText(`Telecom: ${study.phase2.telecom.desserte || "Non renseigne"}`);
+  addText(
+    `Eau potable: ${study.phase2.eauPotable.desserte || "Non renseigne"}`,
+  );
+  addText(`Score: ${study.phase2.reseauxScore}/100`);
   yPos += 5;
 
   // Potentiel
-  addSubtitle("Potentiel constructible");
+  addSubtitle("Potentiel");
   addText(
-    `Surface plancher: ${study.phase2.potentiel.surfacePlancher.toLocaleString("fr-FR")} m²`,
+    `Operation demonstratrice: ${study.phase2.potentiel.operationDemonstratrice ? "Oui" : "Non"}`,
   );
-  addText(`Nombre de logements: ${study.phase2.potentiel.nombreLogements}`);
   addText(
-    `Type de programme: ${study.phase2.potentiel.typeProgramme || "Non defini"}`,
+    `Accord de la commune: ${study.phase2.potentiel.accordCommune ? "Oui" : "Non"}`,
   );
-  addText(`Parkings: ${study.phase2.potentiel.parkings}`);
+  addText(
+    `Risque de contestation locale: ${study.phase2.potentiel.risqueContestationLocale || "Non renseigne"}`,
+  );
   addText(`Score: ${study.phase2.potentielScore}/100`);
   yPos += 5;
 
   // Marché
-  addSubtitle("Analyse de marche");
-  addText(`Prix m² neuf: ${formatCurrency(study.phase2.marche.prixM2Neuf)}`);
+  addSubtitle("Attentes et etat du marche");
   addText(
-    `Prix m² ancien: ${formatCurrency(study.phase2.marche.prixM2Ancien)}`,
+    `Demande / tension: ${study.phase2.marche.demandeTension || "Non renseigne"}`,
   );
   addText(
-    `Demande locative: ${study.phase2.marche.demandeLoc || "Non renseignee"}`,
+    `Dynamique demographique: ${study.phase2.marche.dynamiqueDemographique || "Non renseignee"}`,
   );
-  addText(`Tendance: ${study.phase2.marche.tendance || "Non renseignee"}`);
+  addText(
+    `Concurrence: ${study.phase2.marche.concurrence || "Non renseignee"}`,
+  );
+  addText(
+    `Creation d'emplois: ${study.phase2.marche.creationEmplois || "Non renseignee"}`,
+  );
+  addText(
+    `Revenus des menages: ${study.phase2.marche.revenusMenages || "Non renseignes"}`,
+  );
+  addText(
+    `Absence de demande / offres vacantes: ${study.phase2.marche.absenceDemandeOffresVacantes || "Non renseignee"}`,
+  );
   addText(`Score: ${study.phase2.marcheScore}/100`);
-  yPos += 5;
-
-  // Concurrence
-  addSubtitle("Concurrence");
-  addText(`Programmes proches: ${study.phase2.concurrence.programmesProches}`);
-  addText(
-    `Stock disponible: ${study.phase2.concurrence.stockDisponible || "Non renseigne"}`,
-  );
-  addText(`Score: ${study.phase2.concurrenceScore}/100`);
 
   // === PAGE 4: Phase 3 Financial ===
   doc.addPage();

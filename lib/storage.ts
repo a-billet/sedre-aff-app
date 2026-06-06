@@ -38,13 +38,25 @@ function normalizeStudy(study: FeasibilityStudy): FeasibilityStudy {
     phase2: {
       ...initialPhase2,
       ...study.phase2,
-      urbanisme: {
-        ...initialPhase2.urbanisme,
-        ...study.phase2?.urbanisme,
-        reculs: {
-          ...initialPhase2.urbanisme.reculs,
-          ...study.phase2?.urbanisme?.reculs,
-        },
+      assainissementEU: {
+        ...initialPhase2.assainissementEU,
+        ...study.phase2?.assainissementEU,
+      },
+      assainissementEP: {
+        ...initialPhase2.assainissementEP,
+        ...study.phase2?.assainissementEP,
+      },
+      electricite: {
+        ...initialPhase2.electricite,
+        ...study.phase2?.electricite,
+      },
+      telecom: {
+        ...initialPhase2.telecom,
+        ...study.phase2?.telecom,
+      },
+      eauPotable: {
+        ...initialPhase2.eauPotable,
+        ...study.phase2?.eauPotable,
       },
       potentiel: {
         ...initialPhase2.potentiel,
@@ -53,10 +65,6 @@ function normalizeStudy(study: FeasibilityStudy): FeasibilityStudy {
       marche: {
         ...initialPhase2.marche,
         ...study.phase2?.marche,
-      },
-      concurrence: {
-        ...initialPhase2.concurrence,
-        ...study.phase2?.concurrence,
       },
     },
     phase3: {
