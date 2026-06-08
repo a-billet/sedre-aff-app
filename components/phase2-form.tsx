@@ -149,87 +149,93 @@ export function Phase2Form({ data, onUpdate }: Phase2FormProps) {
 
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center justify-between">
-            <span>Assainissement</span>
-            <span className="text-sm font-normal" style={{ color: getScoreColor(data.assainissementScore) }}>
-              {data.assainissementScore}/100 - {getScoreLabel(data.assainissementScore)}
-            </span>
-          </CardTitle>
-          <CardDescription>Possibilités de raccordement EU et EP</CardDescription>
+          <CardTitle>Viabilisation et réseaux</CardTitle>
+          <CardDescription>Lecture consolidée des conditions de raccordement et de desserte du site</CardDescription>
         </CardHeader>
-        <CardContent>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <SelectField
-              id="assainissementEU"
-              label="Assainissement EU"
-              value={data.assainissementEU.raccordement}
-              onValueChange={(value) => updateAssainissementEU(value as Phase2Data['assainissementEU']['raccordement'])}
-              options={[
-                { value: 'reseau_suffisant', label: 'Collecteur + réseau suffisant' },
-                { value: 'reseau_proximite', label: 'Collecteur + réseau à proximité' },
-                { value: 'station_relevage', label: 'Nécessité de station de relevage' },
-              ]}
-            />
-            <SelectField
-              id="assainissementEP"
-              label="Assainissement EP"
-              value={data.assainissementEP.raccordement}
-              onValueChange={(value) => updateAssainissementEP(value as Phase2Data['assainissementEP']['raccordement'])}
-              options={[
-                { value: 'infiltration', label: 'Sols garantissant l\'infiltration / GIEP' },
-                { value: 'reseau_suffisant', label: 'Collecteur + réseau suffisant' },
-                { value: 'reseau_proximite', label: 'Collecteur + réseau à proximité' },
-              ]}
-            />
-          </div>
-        </CardContent>
-      </Card>
+        <CardContent className="space-y-6">
+          <section className="space-y-4">
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <div className="text-sm font-semibold text-foreground">Assainissement</div>
+                <div className="text-sm text-muted-foreground">Possibilités de raccordement EU et EP</div>
+              </div>
+              <div className="text-sm font-normal" style={{ color: getScoreColor(data.assainissementScore) }}>
+                {data.assainissementScore}/100 - {getScoreLabel(data.assainissementScore)}
+              </div>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <SelectField
+                id="assainissementEU"
+                label="Assainissement EU"
+                value={data.assainissementEU.raccordement}
+                onValueChange={(value) => updateAssainissementEU(value as Phase2Data['assainissementEU']['raccordement'])}
+                options={[
+                  { value: 'reseau_suffisant', label: 'Collecteur + réseau suffisant' },
+                  { value: 'reseau_proximite', label: 'Collecteur + réseau à proximité' },
+                  { value: 'station_relevage', label: 'Nécessité de station de relevage' },
+                ]}
+              />
+              <SelectField
+                id="assainissementEP"
+                label="Assainissement EP"
+                value={data.assainissementEP.raccordement}
+                onValueChange={(value) => updateAssainissementEP(value as Phase2Data['assainissementEP']['raccordement'])}
+                options={[
+                  { value: 'infiltration', label: 'Sols garantissant l\'infiltration / GIEP' },
+                  { value: 'reseau_suffisant', label: 'Collecteur + réseau suffisant' },
+                  { value: 'reseau_proximite', label: 'Collecteur + réseau à proximité' },
+                ]}
+              />
+            </div>
+          </section>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center justify-between">
-            <span>Réseaux</span>
-            <span className="text-sm font-normal" style={{ color: getScoreColor(data.reseauxScore) }}>
-              {data.reseauxScore}/100 - {getScoreLabel(data.reseauxScore)}
-            </span>
-          </CardTitle>
-          <CardDescription>Électricité, telecom et eau potable</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-2">
-            <SelectField
-              id="electricite"
-              label="Electricité"
-              value={data.electricite.desserte}
-              onValueChange={(value) => updateReseau('electricite', value as Phase2Data['electricite']['desserte'])}
-              options={[
-                { value: 'reseau_suffisant', label: 'Poste Transfo + réseau suffisant' },
-                { value: 'reseau_proximite', label: 'Poste Transfo + réseau à proximité' },
-                { value: 'lignes_aeriennes', label: 'Lignes aériennes' },
-              ]}
-            />
-            <SelectField
-              id="telecom"
-              label="Telecom"
-              value={data.telecom.desserte}
-              onValueChange={(value) => updateReseau('telecom', value as Phase2Data['telecom']['desserte'])}
-              options={[
-                { value: 'reseau_suffisant', label: 'Réseau suffisant' },
-                { value: 'reseau_proximite', label: 'Réseau à proximité' },
-                { value: 'lignes_aeriennes', label: 'Lignes aériennes' },
-              ]}
-            />
-            <SelectField
-              id="eauPotable"
-              label="Eau potable"
-              value={data.eauPotable.desserte}
-              onValueChange={(value) => updateEauPotable(value as Phase2Data['eauPotable']['desserte'])}
-              options={[
-                { value: 'reseau_suffisant', label: 'Réseau suffisant' },
-                { value: 'reseau_proximite', label: 'Réseau à proximité' },
-              ]}
-            />
-          </div>
+          <div className="h-px bg-border/70" />
+
+          <section className="space-y-4">
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <div className="text-sm font-semibold text-foreground">Réseaux</div>
+                <div className="text-sm text-muted-foreground">Électricité, telecom et eau potable</div>
+              </div>
+              <div className="text-sm font-normal" style={{ color: getScoreColor(data.reseauxScore) }}>
+                {data.reseauxScore}/100 - {getScoreLabel(data.reseauxScore)}
+              </div>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-2">
+              <SelectField
+                id="electricite"
+                label="Electricité"
+                value={data.electricite.desserte}
+                onValueChange={(value) => updateReseau('electricite', value as Phase2Data['electricite']['desserte'])}
+                options={[
+                  { value: 'reseau_suffisant', label: 'Poste Transfo + réseau suffisant' },
+                  { value: 'reseau_proximite', label: 'Poste Transfo + réseau à proximité' },
+                  { value: 'lignes_aeriennes', label: 'Lignes aériennes' },
+                ]}
+              />
+              <SelectField
+                id="telecom"
+                label="Telecom"
+                value={data.telecom.desserte}
+                onValueChange={(value) => updateReseau('telecom', value as Phase2Data['telecom']['desserte'])}
+                options={[
+                  { value: 'reseau_suffisant', label: 'Réseau suffisant' },
+                  { value: 'reseau_proximite', label: 'Réseau à proximité' },
+                  { value: 'lignes_aeriennes', label: 'Lignes aériennes' },
+                ]}
+              />
+              <SelectField
+                id="eauPotable"
+                label="Eau potable"
+                value={data.eauPotable.desserte}
+                onValueChange={(value) => updateEauPotable(value as Phase2Data['eauPotable']['desserte'])}
+                options={[
+                  { value: 'reseau_suffisant', label: 'Réseau suffisant' },
+                  { value: 'reseau_proximite', label: 'Réseau à proximité' },
+                ]}
+              />
+            </div>
+          </section>
         </CardContent>
       </Card>
 
@@ -386,12 +392,16 @@ function SelectField({
   onValueChange: (value: string | null) => void;
   options: Array<{ value: string; label: string }>;
 }) {
+  const selectedOptionLabel = options.find((option) => option.value === value)?.label;
+
   return (
     <div className="space-y-2">
       <Label htmlFor={id}>{label}</Label>
       <Select value={value} onValueChange={onValueChange}>
         <SelectTrigger id={id} className="w-full sm:w-md max-w-full">
-          <SelectValue placeholder="Sélectionner" />
+          <SelectValue placeholder="Sélectionner">
+            {selectedOptionLabel}
+          </SelectValue>
         </SelectTrigger>
         <SelectContent>
           {options.map((option) => (

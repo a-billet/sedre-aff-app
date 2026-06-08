@@ -144,7 +144,7 @@ export function StudyList({ studies, onSelect, onCreate, onDelete }: StudyListPr
 
                         <div className="grid gap-3 sm:grid-cols-3">
                           <div className="rounded-2xl border border-border/60 bg-background/75 p-4">
-                            <p className="text-xs uppercase tracking-[0.24em] text-muted-foreground">Surface</p>
+                            <p className="text-xs uppercase tracking-[0.24em] text-muted-foreground">Surface foncier</p>
                             <p className="mt-2 text-lg font-semibold text-foreground">
                               {study.projectInfo.landArea > 0
                                 ? `${study.projectInfo.landArea.toLocaleString('fr-FR')} m²`
@@ -152,7 +152,7 @@ export function StudyList({ studies, onSelect, onCreate, onDelete }: StudyListPr
                             </p>
                           </div>
                           <div className="rounded-2xl border border-border/60 bg-background/75 p-4">
-                            <p className="text-xs uppercase tracking-[0.24em] text-muted-foreground">Foncier</p>
+                            <p className="text-xs uppercase tracking-[0.24em] text-muted-foreground">Coût foncier</p>
                             <p className="mt-2 text-lg font-semibold text-foreground">
                               {study.projectInfo.acquisitionPrice > 0
                                 ? `${study.projectInfo.acquisitionPrice.toLocaleString('fr-FR')} €`

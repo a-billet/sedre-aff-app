@@ -106,7 +106,7 @@ export function Phase1Form({ data, onUpdate, projectInfo, onUpdateProjectInfo }:
       {/* Propriete */}
       <Card>
         <CardHeader>
-          <CardTitle>Propriété</CardTitle>
+          <CardTitle>Foncier</CardTitle>
           <CardDescription>Données foncières utilisées dans les calculs des phases suivantes</CardDescription>
         </CardHeader>
         <CardContent>

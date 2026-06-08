@@ -183,7 +183,7 @@ export function Phase3Form({ data, onUpdate, housingCapacity }: Phase3FormProps)
               className={`rounded-xl border p-4 text-left transition-colors ${data.typeOperation === 'ddd' ? 'border-primary bg-primary/5' : 'border-border hover:bg-muted/40'}`}
             >
               <div className="text-sm font-semibold text-foreground">Promotion ou logement social</div>
-              <div className="mt-1 text-sm text-muted-foreground">Opération DDD</div>
+              <div className="mt-1 text-sm text-muted-foreground">Surface habitable, DDD</div>
             </button>
           </div>
         </CardContent>
@@ -209,17 +209,17 @@ export function Phase3Form({ data, onUpdate, housingCapacity }: Phase3FormProps)
         />
       </div>
 
-      <div className="grid gap-6 xl:grid-cols-[1.6fr_1fr]">
-        <div className="space-y-4">
-          <div className="rounded-xl border border-border/60 bg-muted/20 p-4">
+      <div className="grid gap-6 xl:grid-cols-[1.45fr_1fr] xl:gap-8">
+        <div className="space-y-4 rounded-2xl border border-slate-400/80 bg-slate-200/50 p-4 shadow-sm">
+          <div className="rounded-xl border border-slate-200/80 bg-white/85 p-4">
             <div className="flex items-center justify-between gap-4">
               <div>
-                <div className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Dépenses</div>
-                <div className="mt-1 text-sm text-muted-foreground">Vision consolidée des coûts du projet</div>
+                <div className="text-xs uppercase tracking-[0.2em] text-slate-700">Dépenses</div>
+                <div className="mt-1 text-sm text-slate-700/80">Vision consolidée des coûts du projet</div>
               </div>
               <div className="text-right">
-                <div className="text-xs text-muted-foreground">Total dépenses</div>
-                <div className="text-2xl font-bold text-foreground">{formatCurrency(data.budgetTotal)}</div>
+                <div className="text-xs text-slate-700/70">Total dépenses</div>
+                <div className="text-2xl font-bold text-slate-900">{formatCurrency(data.budgetTotal)}</div>
               </div>
             </div>
           </div>
@@ -416,8 +416,8 @@ export function Phase3Form({ data, onUpdate, housingCapacity }: Phase3FormProps)
           </Card>
         </div>
 
-        <div className="space-y-4">
-          <div className="rounded-xl border border-emerald-200 bg-emerald-50/60 p-4">
+        <div className="space-y-4 rounded-2xl border border-emerald-200/80 bg-emerald-50/45 p-4 shadow-sm">
+          <div className="rounded-xl border border-emerald-200 bg-white/80 p-4">
             <div className="flex items-center justify-between gap-4">
               <div>
                 <div className="text-xs uppercase tracking-[0.2em] text-emerald-700">Recettes</div>
