@@ -142,7 +142,7 @@ export function StudyList({ studies, onSelect, onCreate, onDelete }: StudyListPr
                           </div>
                         </div>
 
-                        <div className="grid gap-3 sm:grid-cols-3">
+                        <div className="grid gap-3 sm:grid-cols-2">
                           <div className="rounded-2xl border border-border/60 bg-background/75 p-4">
                             <p className="text-xs uppercase tracking-[0.24em] text-muted-foreground">Surface foncier</p>
                             <p className="mt-2 text-lg font-semibold text-foreground">
@@ -158,10 +158,6 @@ export function StudyList({ studies, onSelect, onCreate, onDelete }: StudyListPr
                                 ? `${study.projectInfo.acquisitionPrice.toLocaleString('fr-FR')} €`
                                 : 'Non défini'}
                             </p>
-                          </div>
-                          <div className="rounded-2xl border border-border/60 bg-background/75 p-4">
-                            <p className="text-xs uppercase tracking-[0.24em] text-muted-foreground">Progression</p>
-                            <p className="mt-2 text-lg font-semibold text-foreground">Phase {study.currentPhase}/4</p>
                           </div>
                         </div>
 

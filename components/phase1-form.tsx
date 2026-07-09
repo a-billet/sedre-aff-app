@@ -118,7 +118,6 @@ export function Phase1Form({ data, onUpdate, projectInfo, onUpdateProjectInfo }:
                 type="number"
                 value={projectInfo.landArea || ''}
                 onChange={(e) => updateProperty('landArea', parseFloat(e.target.value) || 0)}
-                placeholder="Ex: 2500"
               />
             </div>
 
@@ -129,7 +128,6 @@ export function Phase1Form({ data, onUpdate, projectInfo, onUpdateProjectInfo }:
                 type="number"
                 value={projectInfo.acquisitionPrice || ''}
                 onChange={(e) => updateProperty('acquisitionPrice', parseFloat(e.target.value) || 0)}
-                placeholder="Ex: 500000"
               />
             </div>
           </div>
@@ -345,7 +343,7 @@ export function Phase1Form({ data, onUpdate, projectInfo, onUpdateProjectInfo }:
       </Card>
 
       {/* Comments */}
-      <Card>
+      <Card className="">
         <CardHeader>
           <CardTitle>Commentaires Phase 1</CardTitle>
         </CardHeader>

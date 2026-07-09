@@ -49,7 +49,7 @@ export function PhaseNavigation({
               key={phase.id}
               onClick={() => onChangePhase(phase.id)}
               className={cn(
-                'flex flex-1 min-w-[140px] flex-col items-center gap-1 border-b-2 px-4 py-3 text-center transition-colors',
+                'flex flex-1 min-w-35 flex-col items-center gap-1 border-b-2 px-4 py-3 text-center transition-colors',
                 isActive
                   ? 'border-primary bg-primary/5 text-foreground'
                   : 'border-transparent text-muted-foreground hover:border-border hover:bg-muted/50 hover:cursor-pointer'

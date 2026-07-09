@@ -1,7 +1,7 @@
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import { getScoreLabel, pluZoneLabels } from "./config";
 import { FeasibilityStudy, calculateGrade } from "./types";
-import { getScoreLabel, recommendationLabels, pluZoneLabels } from "./config";
 
 export async function generatePDF(study: FeasibilityStudy): Promise<void> {
   const doc = new jsPDF();
@@ -149,26 +149,6 @@ export async function generatePDF(study: FeasibilityStudy): Promise<void> {
   doc.setTextColor(0, 0, 0);
   yPos += 50;
 
-  // Recommendation
-  addSubtitle("RECOMMANDATION");
-  const recLabel = study.phase4.recommandation
-    ? recommendationLabels[study.phase4.recommandation]
-    : "Non definie";
-  doc.setFontSize(12);
-  doc.setFont("helvetica", "bold");
-
-  const recColors: Record<string, [number, number, number]> = {
-    go: [34, 197, 94],
-    go_reserve: [234, 179, 8],
-    no_go: [239, 68, 68],
-  };
-
-  if (study.phase4.recommandation && recColors[study.phase4.recommandation]) {
-    doc.setTextColor(...recColors[study.phase4.recommandation]);
-  }
-  doc.text(recLabel, margin, yPos);
-  doc.setTextColor(0, 0, 0);
-  yPos += 8;
   addText(study.phase4.justification);
 
   // Date

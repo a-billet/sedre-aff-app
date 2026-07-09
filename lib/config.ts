@@ -1,11 +1,11 @@
 import type {
-  WeightConfig,
   FeasibilityStudy,
   Phase1Data,
   Phase2Data,
   Phase3Data,
   Phase4Data,
   ProjectInfo,
+  WeightConfig,
 } from "./types";
 
 // Configuration des pondérations par défaut
@@ -114,12 +114,6 @@ export function getRecommendation(
   if (score >= recommendationThresholds.go_reserve) return "go_reserve";
   return "no_go";
 }
-
-export const recommendationLabels = {
-  go: "GO - Projet viable",
-  go_reserve: "GO avec réserves",
-  no_go: "NO GO - Projet non recommandé",
-};
 
 export const recommendationColors = {
   go: "#22c55e",

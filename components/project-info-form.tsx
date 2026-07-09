@@ -53,7 +53,7 @@ export function ProjectInfoForm({ projectInfo, onUpdate }: ProjectInfoFormProps)
               id="city"
               value={projectInfo.city}
               onChange={(e) => handleChange('city', e.target.value)}
-              placeholder="Ex: Lyon"
+              placeholder="Ex: Saint-Denis"
             />
           </div>
 
@@ -63,7 +63,7 @@ export function ProjectInfoForm({ projectInfo, onUpdate }: ProjectInfoFormProps)
               id="department"
               value={projectInfo.department}
               onChange={(e) => handleChange('department', e.target.value)}
-              placeholder="Ex: 69 - Rhône"
+              placeholder="Ex: 974 - La Réunion"
             />
           </div>
 

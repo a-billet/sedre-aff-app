@@ -367,7 +367,6 @@ export function Phase3Form({ data, onUpdate, housingCapacity }: Phase3FormProps)
                     type="number"
                     value={data.depenses.fraisFinanciers.tauxEmprunt || ''}
                     onChange={(e) => updateFraisFinanciers('tauxEmprunt', parseFloat(e.target.value) || 0)}
-                    placeholder="Ex: 4.5"
                   />
                 </div>
                 <div className="space-y-2">
@@ -416,7 +415,7 @@ export function Phase3Form({ data, onUpdate, housingCapacity }: Phase3FormProps)
           </Card>
         </div>
 
-        <div className="space-y-4 rounded-2xl border border-emerald-200/80 bg-emerald-50/45 p-4 shadow-sm">
+        <div className="space-y-4 rounded-2xl border border-emerald-400/80 bg-emerald-50/45 p-4 shadow-sm">
           <div className="rounded-xl border border-emerald-200 bg-white/80 p-4">
             <div className="flex items-center justify-between gap-4">
               <div>

@@ -1,25 +1,22 @@
 'use client';
 
-import { useEffect } from 'react';
-import { FeasibilityStudy, Phase4Data, calculateGrade, getGradeColor, getGradeTextColor } from '@/lib/types';
-import { getScoreColor, getScoreLabel, recommendationLabels, recommendationColors, defaultWeights } from '@/lib/config';
-import { calculateGlobalScore, generateAutoSWOT, generateRecommendation } from '@/lib/calculations';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { 
-  FileDown, 
-  CheckCircle2, 
-  XCircle, 
+import { Textarea } from '@/components/ui/textarea';
+import { calculateGlobalScore, generateAutoSWOT, generateRecommendation } from '@/lib/calculations';
+import { defaultWeights, getScoreColor, getScoreLabel } from '@/lib/config';
+import { FeasibilityStudy, Phase4Data, calculateGrade, getGradeColor } from '@/lib/types';
+import {
   AlertTriangle,
-  TrendingUp,
-  TrendingDown,
+  FileDown,
+  Shield,
   Target,
-  Shield
+  TrendingDown,
+  TrendingUp
 } from 'lucide-react';
+import { useEffect } from 'react';
 
 interface Phase4SynthesisProps {
   study: FeasibilityStudy;
@@ -89,58 +86,56 @@ export function Phase4Synthesis({ study, onUpdate }: Phase4SynthesisProps) {
   const handleExportPDF = async () => {
     const { jsPDF } = await import('jspdf');
     const autoTable = (await import('jspdf-autotable')).default;
-    
+
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.getWidth();
-    
+
     // Title
     doc.setFontSize(20);
     doc.setFont('helvetica', 'bold');
     doc.text('Etude de Faisabilite', pageWidth / 2, 20, { align: 'center' });
-    
+
     doc.setFontSize(14);
     doc.setFont('helvetica', 'normal');
     doc.text(study.projectInfo.projectName || 'Sans nom', pageWidth / 2, 30, { align: 'center' });
-    
+
     doc.setFontSize(10);
     doc.text(study.projectInfo.address, pageWidth / 2, 38, { align: 'center' });
     doc.text(`${study.projectInfo.city} - ${study.projectInfo.department}`, pageWidth / 2, 44, { align: 'center' });
-    
+
     // Score global
     doc.setFontSize(16);
     doc.setFont('helvetica', 'bold');
     const scoreText = `Score Global: ${phase4.scoresPonderes.global}/100 (${globalGrade})`;
     doc.text(scoreText, pageWidth / 2, 58, { align: 'center' });
-    
+
     // Recommendation
     doc.setFontSize(12);
-    const recLabel = recommendationLabels[phase4.recommandation as keyof typeof recommendationLabels] || 'Non defini';
-    doc.text(`Recommandation: ${recLabel}`, pageWidth / 2, 68, { align: 'center' });
-    
+
     // Scores par phase
     doc.setFontSize(14);
     doc.setFont('helvetica', 'bold');
     doc.text('Scores par Phase', 14, 82);
-    
+
     autoTable(doc, {
       startY: 88,
       head: [['Phase', 'Score', 'Poids', 'Score Pondere']],
       body: [
         ['Phase 1 - Analyse initiale', `${study.phase1.globalScore}/100`, `${defaultWeights.global.phase1}%`, `${phase4.scoresPonderes.phase1}`],
-        ['Phase 2 - Analyse detaillee', `${study.phase2.globalScore}/100`, `${defaultWeights.global.phase2}%`, `${phase4.scoresPonderes.phase2}`],
-        ['Phase 3 - Analyse financiere', `${study.phase3.financialScore}/100`, `${defaultWeights.global.phase3}%`, `${phase4.scoresPonderes.phase3}`],
+        ['Phase 2 - Analyse detaillée', `${study.phase2.globalScore}/100`, `${defaultWeights.global.phase2}%`, `${phase4.scoresPonderes.phase2}`],
+        ['Phase 3 - Analyse financière', `${study.phase3.financialScore}/100`, `${defaultWeights.global.phase3}%`, `${phase4.scoresPonderes.phase3}`],
         ['TOTAL', '', '100%', `${phase4.scoresPonderes.global}`],
       ],
       theme: 'grid',
       headStyles: { fillColor: [34, 139, 34] },
     });
-    
+
     // Synthese financiere
     const financialY = (doc as typeof doc & { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 15;
     doc.setFontSize(14);
     doc.setFont('helvetica', 'bold');
     doc.text('Synthese Financiere', 14, financialY);
-    
+
     autoTable(doc, {
       startY: financialY + 6,
       head: [['Indicateur', 'Valeur']],
@@ -153,13 +148,13 @@ export function Phase4Synthesis({ study, onUpdate }: Phase4SynthesisProps) {
       theme: 'grid',
       headStyles: { fillColor: [34, 139, 34] },
     });
-    
+
     // SWOT
     const swotY = (doc as typeof doc & { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 15;
     doc.setFontSize(14);
     doc.setFont('helvetica', 'bold');
     doc.text('Analyse SWOT', 14, swotY);
-    
+
     autoTable(doc, {
       startY: swotY + 6,
       head: [['Forces', 'Faiblesses']],
@@ -171,7 +166,7 @@ export function Phase4Synthesis({ study, onUpdate }: Phase4SynthesisProps) {
       headStyles: { fillColor: [34, 139, 34] },
       columnStyles: { 0: { cellWidth: 85 }, 1: { cellWidth: 85 } },
     });
-    
+
     autoTable(doc, {
       startY: (doc as typeof doc & { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 2,
       head: [['Opportunites', 'Menaces']],
@@ -183,7 +178,7 @@ export function Phase4Synthesis({ study, onUpdate }: Phase4SynthesisProps) {
       headStyles: { fillColor: [34, 139, 34] },
       columnStyles: { 0: { cellWidth: 85 }, 1: { cellWidth: 85 } },
     });
-    
+
     // Justification
     if (phase4.justification) {
       const justifY = (doc as typeof doc & { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 15;
@@ -195,12 +190,12 @@ export function Phase4Synthesis({ study, onUpdate }: Phase4SynthesisProps) {
       const splitJustif = doc.splitTextToSize(phase4.justification, pageWidth - 28);
       doc.text(splitJustif, 14, justifY + 8);
     }
-    
+
     // Footer
     doc.setFontSize(8);
     doc.setFont('helvetica', 'italic');
     doc.text(`Genere le ${new Date().toLocaleDateString('fr-FR')}`, 14, doc.internal.pageSize.getHeight() - 10);
-    
+
     doc.save(`faisabilite-${study.projectInfo.projectName || 'etude'}.pdf`);
   };
 
@@ -232,24 +227,10 @@ export function Phase4Synthesis({ study, onUpdate }: Phase4SynthesisProps) {
               <div className="text-lg text-muted-foreground mt-1">
                 {getScoreLabel(phase4.scoresPonderes.global)}
               </div>
-              <Progress 
-                value={phase4.scoresPonderes.global} 
+              <Progress
+                value={phase4.scoresPonderes.global}
                 className="h-3 mt-3"
               />
-            </div>
-            <div className="text-right">
-              <Badge 
-                className="text-lg px-4 py-2"
-                style={{ 
-                  backgroundColor: recommendationColors[phase4.recommandation as keyof typeof recommendationColors] || '#888',
-                  color: 'white'
-                }}
-              >
-                {phase4.recommandation === 'go' && <CheckCircle2 className="w-5 h-5 mr-2" />}
-                {phase4.recommandation === 'go_reserve' && <AlertTriangle className="w-5 h-5 mr-2" />}
-                {phase4.recommandation === 'no_go' && <XCircle className="w-5 h-5 mr-2" />}
-                {recommendationLabels[phase4.recommandation as keyof typeof recommendationLabels] || 'En attente'}
-              </Badge>
             </div>
           </div>
         </CardContent>
@@ -266,14 +247,14 @@ export function Phase4Synthesis({ study, onUpdate }: Phase4SynthesisProps) {
         />
         <ScorePhaseCard
           title="Phase 2"
-          subtitle="Analyse detaillee"
+          subtitle="Analyse detaillée"
           score={study.phase2.globalScore}
           weight={defaultWeights.global.phase2}
           weightedScore={phase4.scoresPonderes.phase2}
         />
         <ScorePhaseCard
           title="Phase 3"
-          subtitle="Analyse financiere"
+          subtitle="Analyse financière"
           score={study.phase3.financialScore}
           weight={defaultWeights.global.phase3}
           weightedScore={phase4.scoresPonderes.phase3}
@@ -285,7 +266,7 @@ export function Phase4Synthesis({ study, onUpdate }: Phase4SynthesisProps) {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Target className="w-5 h-5 text-primary" />
-            Synthese Financiere
+            Synthese Financière
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -295,7 +276,7 @@ export function Phase4Synthesis({ study, onUpdate }: Phase4SynthesisProps) {
               value={formatCurrency(phase4.syntheseFinanciere.investissementTotal)}
             />
             <FinancialMetric
-              label="Recettes estimees"
+              label="Recettes estimées"
               value={formatCurrency(phase4.syntheseFinanciere.recettesEstimees)}
               positive
             />
@@ -399,13 +380,12 @@ export function Phase4Synthesis({ study, onUpdate }: Phase4SynthesisProps) {
       <Card>
         <CardHeader>
           <CardTitle>Conditions suspensives</CardTitle>
-          <CardDescription>Conditions a lever avant de poursuivre le projet</CardDescription>
+          <CardDescription>Conditions à lever avant de poursuivre le projet</CardDescription>
         </CardHeader>
         <CardContent>
           <Textarea
             value={phase4.conditionsSuspensives.join('\n')}
             onChange={(e) => updateConditions(e.target.value)}
-            placeholder="Une condition par ligne..."
             rows={4}
           />
         </CardContent>
@@ -438,7 +418,7 @@ function ScorePhaseCard({ title, subtitle, score, weight, weightedScore }: {
   weightedScore: number;
 }) {
   const grade = calculateGrade(score);
-  
+
   return (
     <Card>
       <CardContent className="p-4">
