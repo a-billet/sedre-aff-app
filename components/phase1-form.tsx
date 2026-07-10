@@ -3,6 +3,7 @@
 import { useEffect } from 'react';
 import { Phase1Data, ProjectInfo } from '@/lib/types';
 import { pluZoneLabels, pluZoneScores, getScoreColor, getScoreLabel } from '@/lib/config';
+import { servitudePenalties, criteresEnvironnement } from '@/lib/scoring';
 import {
   calculateServitudesScore,
   calculateAccessibiliteScore,
@@ -185,28 +186,28 @@ export function Phase1Form({ data, onUpdate, projectInfo, onUpdateProjectInfo }:
               label="Protection du patrimoine (ABF)"
               checked={data.servitudes.patrimoine}
               onChange={(checked) => updateServitude('patrimoine', checked)}
-              impact="-20 points"
+              impact={`-${servitudePenalties.patrimoine.malus} points`}
             />
             <CheckboxField
               id="inondation"
               label="Zone inondable (PPRI)"
               checked={data.servitudes.inondation}
               onChange={(checked) => updateServitude('inondation', checked)}
-              impact="-30 points"
+              impact={`-${servitudePenalties.inondation.malus} points`}
             />
             <CheckboxField
               id="bruit"
               label="Nuisances sonores (PEB, route)"
               checked={data.servitudes.bruit}
               onChange={(checked) => updateServitude('bruit', checked)}
-              impact="-15 points"
+              impact={`-${servitudePenalties.bruit.malus} points`}
             />
             <CheckboxField
               id="pollution"
               label="Pollution des sols"
               checked={data.servitudes.pollution}
               onChange={(checked) => updateServitude('pollution', checked)}
-              impact="-25 points"
+              impact={`-${servitudePenalties.pollution.malus} points`}
             />
             <div className="sm:col-span-2 space-y-2">
               <Label htmlFor="servitudesAutres">Autres servitudes</Label>
@@ -306,28 +307,28 @@ export function Phase1Form({ data, onUpdate, projectInfo, onUpdateProjectInfo }:
               label="Commerces de proximité"
               checked={data.environnement.commerces}
               onChange={(checked) => updateEnvironnement('commerces', checked)}
-              impact="+25 points"
+              impact={`+${criteresEnvironnement.commerces.score} points`}
             />
             <CheckboxField
               id="ecoles"
               label="Écoles / établissements scolaires"
               checked={data.environnement.ecoles}
               onChange={(checked) => updateEnvironnement('ecoles', checked)}
-              impact="+25 points"
+              impact={`+${criteresEnvironnement.ecoles.score} points`}
             />
             <CheckboxField
               id="sante"
               label="Services de santé"
               checked={data.environnement.sante}
               onChange={(checked) => updateEnvironnement('sante', checked)}
-              impact="+25 points"
+              impact={`+${criteresEnvironnement.sante.score} points`}
             />
             <CheckboxField
               id="espaceVerts"
               label="Espaces verts / parcs"
               checked={data.environnement.espaceVerts}
               onChange={(checked) => updateEnvironnement('espaceVerts', checked)}
-              impact="+25 points"
+              impact={`+${criteresEnvironnement.espaceVerts.score} points`}
             />
             <div className="sm:col-span-2 space-y-2">
               <Label htmlFor="nuisances">Nuisances identifiées</Label>

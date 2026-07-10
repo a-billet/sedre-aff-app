@@ -5,84 +5,83 @@ import type {
   Phase3Data,
   Phase4Data,
   ProjectInfo,
-  WeightConfig,
 } from "./types";
+import { pluZones, criteresAccessibilite } from "./scoring";
 
-// Configuration des pondérations par défaut
-export const defaultWeights: WeightConfig = {
-  phase1: {
-    pluZone: 35,
-    servitudes: 25,
-    accessibilite: 20,
-    environnement: 20,
-  },
-  phase2: {
-    assainissement: 30,
-    reseaux: 25,
-    potentiel: 20,
-    marche: 25,
-  },
-  phase3: {
-    margeMin: 15, // % minimum de marge promotion
-    roiMin: 10, // % minimum de ROI
-    ratioFoncierMax: 25, // % maximum du ratio foncier
-  },
-  global: {
-    phase1: 25,
-    phase2: 35,
-    phase3: 40,
-  },
-};
+// Re-export defaultWeights so existing imports keep working
+export { defaultWeights } from "./scoring";
 
-// Scores par zone PLU
-export const pluZoneScores: Record<string, number> = {
-  UA: 100, // Zone urbaine dense
-  UB: 90, // Zone urbaine
-  UC: 80, // Zone urbaine périphérique
-  AU: 70, // Zone à urbaniser
-  A: 20, // Zone agricole
-  N: 10, // Zone naturelle
-};
+// ============================================================
+// DÉRIVÉS — rétrocompatibilité
+// Ces exports sont calculés à partir de scoring.ts.
+// Dans les nouveaux fichiers, préférez importer directement
+// depuis scoring.ts pour accéder au label et au score ensemble.
+// ============================================================
 
-// Labels pour les zones PLU
-export const pluZoneLabels: Record<string, string> = {
-  UA: "UA - Zone urbaine dense",
-  UB: "UB - Zone urbaine",
-  UC: "UC - Zone urbaine périphérique",
-  AU: "AU - Zone à urbaniser",
-  A: "A - Zone agricole",
-  N: "N - Zone naturelle",
-};
+/** Score seul par zone PLU */
+export const pluZoneScores: Record<string, number> = Object.fromEntries(
+  Object.entries(pluZones).map(([key, { score }]) => [key, score]),
+);
 
-// Scores par niveau d'accessibilité
+/** Label seul par zone PLU */
+export const pluZoneLabels: Record<string, string> = Object.fromEntries(
+  Object.entries(pluZones).map(([key, { label }]) => [key, label]),
+);
+
+/** Scores d'accessibilité plats (dérivés de criteresAccessibilite) */
 export const accessibilityScores = {
-  transportEnCommun: {
-    excellent: 100,
-    bon: 75,
-    moyen: 50,
-    faible: 25,
-  },
-  axesRoutiers: {
-    excellent: 100,
-    bon: 75,
-    moyen: 50,
-    faible: 25,
-  },
-  stationnement: {
-    facile: 100,
-    moyen: 60,
-    difficile: 30,
-  },
+  transportEnCommun: Object.fromEntries(
+    Object.entries(criteresAccessibilite.transportEnCommun).map(
+      ([k, { score }]) => [k, score],
+    ),
+  ) as Record<string, number>,
+  axesRoutiers: Object.fromEntries(
+    Object.entries(criteresAccessibilite.axesRoutiers).map(([k, { score }]) => [
+      k,
+      score,
+    ]),
+  ) as Record<string, number>,
+  stationnement: Object.fromEntries(
+    Object.entries(criteresAccessibilite.stationnement).map(
+      ([k, { score }]) => [k, score],
+    ),
+  ) as Record<string, number>,
 };
 
-// Seuils de recommandation
+// ============================================================
+// SEUILS & RECOMMANDATIONS
+// ============================================================
+
 export const recommendationThresholds = {
-  go: 70, // Score >= 70 = GO
-  go_reserve: 50, // Score >= 50 = GO avec réserves
-  // Score < 50 = NO GO
+  go: 70, // Score >= 70 → GO
+  go_reserve: 50, // Score >= 50 → GO avec réserves
+  // Score < 50  → NO GO
 };
 
-// Couleurs pour les scores
+export const recommendationLabels: Record<string, string> = {
+  go: "GO",
+  go_reserve: "GO avec réserves",
+  no_go: "NO GO",
+};
+
+export const recommendationColors = {
+  go: "#22c55e",
+  go_reserve: "#eab308",
+  no_go: "#ef4444",
+};
+
+export function getRecommendation(
+  score: number,
+): "go" | "go_reserve" | "no_go" {
+  if (score >= recommendationThresholds.go) return "go";
+  if (score >= recommendationThresholds.go_reserve) return "go_reserve";
+  return "no_go";
+}
+
+// ============================================================
+// COULEURS & LABELS DE SCORE
+// ============================================================
+
 export const scoreColors = {
   excellent: "#22c55e", // vert
   good: "#84cc16", // vert clair
@@ -107,21 +106,10 @@ export function getScoreLabel(score: number): string {
   return "Insuffisant";
 }
 
-export function getRecommendation(
-  score: number,
-): "go" | "go_reserve" | "no_go" {
-  if (score >= recommendationThresholds.go) return "go";
-  if (score >= recommendationThresholds.go_reserve) return "go_reserve";
-  return "no_go";
-}
+// ============================================================
+// VALEURS INITIALES
+// ============================================================
 
-export const recommendationColors = {
-  go: "#22c55e",
-  go_reserve: "#eab308",
-  no_go: "#ef4444",
-};
-
-// Valeurs initiales
 export const initialProjectInfo: ProjectInfo = {
   projectName: "",
   address: "",

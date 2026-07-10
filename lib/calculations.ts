@@ -5,12 +5,19 @@ import type {
   Phase4Data,
   FeasibilityStudy,
 } from "./types";
+import { defaultWeights, getRecommendation } from "./config";
 import {
-  defaultWeights,
-  pluZoneScores,
-  accessibilityScores,
-  getRecommendation,
-} from "./config";
+  servitudePenalties,
+  criteresAccessibilite,
+  criteresEnvironnement,
+  nuisancesMalus,
+  criteresAssainissementEU,
+  criteresAssainissementEP,
+  criteresReseauxSecs,
+  criteresEauPotable,
+  criteresContestationLocale,
+  criteresMarche,
+} from "./scoring";
 
 // === Calculs Phase 1 ===
 
@@ -18,11 +25,12 @@ export function calculateServitudesScore(
   servitudes: Phase1Data["servitudes"],
 ): number {
   let score = 100;
-  if (servitudes.patrimoine) score -= 20;
-  if (servitudes.inondation) score -= 30;
-  if (servitudes.bruit) score -= 15;
-  if (servitudes.pollution) score -= 25;
-  if (servitudes.autres && servitudes.autres.trim() !== "") score -= 10;
+  if (servitudes.patrimoine) score -= servitudePenalties.patrimoine.malus;
+  if (servitudes.inondation) score -= servitudePenalties.inondation.malus;
+  if (servitudes.bruit) score -= servitudePenalties.bruit.malus;
+  if (servitudes.pollution) score -= servitudePenalties.pollution.malus;
+  if (servitudes.autres && servitudes.autres.trim() !== "")
+    score -= servitudePenalties.autres.malus;
   return Math.max(0, score);
 }
 
@@ -33,14 +41,21 @@ export function calculateAccessibiliteScore(
 
   if (accessibilite.transportEnCommun) {
     scores.push(
-      accessibilityScores.transportEnCommun[accessibilite.transportEnCommun],
+      criteresAccessibilite.transportEnCommun[accessibilite.transportEnCommun]
+        ?.score ?? 0,
     );
   }
   if (accessibilite.axesRoutiers) {
-    scores.push(accessibilityScores.axesRoutiers[accessibilite.axesRoutiers]);
+    scores.push(
+      criteresAccessibilite.axesRoutiers[accessibilite.axesRoutiers]?.score ??
+        0,
+    );
   }
   if (accessibilite.stationnement) {
-    scores.push(accessibilityScores.stationnement[accessibilite.stationnement]);
+    scores.push(
+      criteresAccessibilite.stationnement[accessibilite.stationnement]?.score ??
+        0,
+    );
   }
 
   if (scores.length === 0) return 0;
@@ -51,20 +66,19 @@ export function calculateEnvironnementScore(
   environnement: Phase1Data["environnement"],
 ): number {
   let score = 0;
-  const maxScore = 100;
-  const itemScore = 25;
 
-  if (environnement.commerces) score += itemScore;
-  if (environnement.ecoles) score += itemScore;
-  if (environnement.sante) score += itemScore;
-  if (environnement.espaceVerts) score += itemScore;
+  if (environnement.commerces) score += criteresEnvironnement.commerces.score;
+  if (environnement.ecoles) score += criteresEnvironnement.ecoles.score;
+  if (environnement.sante) score += criteresEnvironnement.sante.score;
+  if (environnement.espaceVerts)
+    score += criteresEnvironnement.espaceVerts.score;
 
   // Pénalité pour nuisances
   if (environnement.nuisances && environnement.nuisances.trim() !== "") {
-    score = Math.max(0, score - 20);
+    score = Math.max(0, score - nuisancesMalus);
   }
 
-  return Math.min(score, maxScore);
+  return Math.min(score, 100);
 }
 
 export function calculatePhase1GlobalScore(phase1: Phase1Data): number {
@@ -87,73 +101,8 @@ export function calculatePhase1GlobalScore(phase1: Phase1Data): number {
 
 // === Calculs Phase 2 ===
 
-const phase2OptionScores = {
-  assainissementEU: {
-    reseau_suffisant: 100,
-    reseau_proximite: 70,
-    station_relevage: 35,
-    "": 0,
-  },
-  assainissementEP: {
-    infiltration: 100,
-    reseau_suffisant: 85,
-    reseau_proximite: 60,
-    "": 0,
-  },
-  reseaux: {
-    reseau_suffisant: 100,
-    reseau_proximite: 70,
-    lignes_aeriennes: 35,
-    "": 0,
-  },
-  eauPotable: {
-    reseau_suffisant: 100,
-    reseau_proximite: 70,
-    "": 0,
-  },
-  demandeTension: {
-    forte: 100,
-    moyenne: 60,
-    faible: 25,
-    "": 0,
-  },
-  dynamiqueDemographique: {
-    croissance: 100,
-    stable: 65,
-    baisse: 25,
-    "": 0,
-  },
-  concurrence: {
-    faible: 100,
-    moderee: 65,
-    forte: 25,
-    "": 0,
-  },
-  creationEmplois: {
-    forte: 100,
-    moderee: 65,
-    faible: 30,
-    "": 0,
-  },
-  revenusMenages: {
-    eleves: 100,
-    intermediaires: 65,
-    faibles: 30,
-    "": 0,
-  },
-  absenceDemandeOffresVacantes: {
-    faible: 100,
-    moyenne: 55,
-    forte: 15,
-    "": 0,
-  },
-  contestation: {
-    faible: 100,
-    moyen: 55,
-    fort: 15,
-    "": 0,
-  },
-} as const;
+// Les scores des options Phase 2 sont définis dans lib/scoring.ts.
+// Ce commentaire remplace l'ancien objet phase2OptionScores inline.
 
 function calculateWeightedAverage(
   entries: Array<{ score: number; weight: number }>,
@@ -182,16 +131,14 @@ export function calculateAssainissementScore(
   return calculateWeightedAverage([
     {
       score:
-        phase2OptionScores.assainissementEU[
-          phase2.assainissementEU.raccordement
-        ],
+        criteresAssainissementEU[phase2.assainissementEU.raccordement]?.score ??
+        0,
       weight: 55,
     },
     {
       score:
-        phase2OptionScores.assainissementEP[
-          phase2.assainissementEP.raccordement
-        ],
+        criteresAssainissementEP[phase2.assainissementEP.raccordement]?.score ??
+        0,
       weight: 45,
     },
   ]);
@@ -202,15 +149,15 @@ export function calculateReseauxScore(
 ): number {
   return calculateWeightedAverage([
     {
-      score: phase2OptionScores.reseaux[phase2.electricite.desserte],
+      score: criteresReseauxSecs[phase2.electricite.desserte]?.score ?? 0,
       weight: 40,
     },
     {
-      score: phase2OptionScores.reseaux[phase2.telecom.desserte],
+      score: criteresReseauxSecs[phase2.telecom.desserte]?.score ?? 0,
       weight: 25,
     },
     {
-      score: phase2OptionScores.eauPotable[phase2.eauPotable.desserte],
+      score: criteresEauPotable[phase2.eauPotable.desserte]?.score ?? 0,
       weight: 35,
     },
   ]);
@@ -219,33 +166,32 @@ export function calculateReseauxScore(
 export function calculateMarcheScore(marche: Phase2Data["marche"]): number {
   return calculateWeightedAverage([
     {
-      score: phase2OptionScores.demandeTension[marche.demandeTension],
+      score: criteresMarche.demandeTension[marche.demandeTension]?.score ?? 0,
       weight: 25,
     },
     {
       score:
-        phase2OptionScores.dynamiqueDemographique[
-          marche.dynamiqueDemographique
-        ],
+        criteresMarche.dynamiqueDemographique[marche.dynamiqueDemographique]
+          ?.score ?? 0,
       weight: 15,
     },
     {
-      score: phase2OptionScores.concurrence[marche.concurrence],
+      score: criteresMarche.concurrence[marche.concurrence]?.score ?? 0,
       weight: 20,
     },
     {
-      score: phase2OptionScores.creationEmplois[marche.creationEmplois],
+      score: criteresMarche.creationEmplois[marche.creationEmplois]?.score ?? 0,
       weight: 15,
     },
     {
-      score: phase2OptionScores.revenusMenages[marche.revenusMenages],
+      score: criteresMarche.revenusMenages[marche.revenusMenages]?.score ?? 0,
       weight: 10,
     },
     {
       score:
-        phase2OptionScores.absenceDemandeOffresVacantes[
+        criteresMarche.absenceDemandeOffresVacantes[
           marche.absenceDemandeOffresVacantes
-        ],
+        ]?.score ?? 0,
       weight: 15,
     },
   ]);
@@ -265,7 +211,8 @@ export function calculatePotentielScore(
     },
     {
       score:
-        phase2OptionScores.contestation[potentiel.risqueContestationLocale],
+        criteresContestationLocale[potentiel.risqueContestationLocale]?.score ??
+        0,
       weight: 30,
     },
   ]);
