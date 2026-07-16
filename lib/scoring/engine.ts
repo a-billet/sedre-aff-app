@@ -5,13 +5,13 @@
  * Toutes les fonctions sont pures et testables de manière autonome.
  *
  * Principe fondamental :
- * Le score calculé dépend uniquement des réponses ET de la version de grille
- * passée explicitement en paramètre. La version de grille n'est jamais
- * lue depuis un contexte global ou un import statique.
+ * Le score calculé dépend uniquement des réponses ET des critères
+ * passés explicitement en paramètre. Les critères ne sont jamais
+ * lus depuis un contexte global ou un import statique.
  */
 
 import type {
-  GrilleVersionConfig,
+  SeuilsRecommandation,
   ReponsesMap,
   ScoreResult,
   ScoreCategorie,
@@ -97,28 +97,35 @@ function moyennePonderee(
  */
 function recommandationFromScore(
   score: number,
-  seuils: GrilleVersionConfig["seuils"],
+  seuils: SeuilsRecommandation,
 ): ScoreResult["recommandation"] {
   if (score >= seuils.go) return "go";
   if (score >= seuils.goReserve) return "go_reserve";
   return "no_go";
 }
 
+const DEFAULT_SEUILS: SeuilsRecommandation = { go: 70, goReserve: 50 };
+
 /**
- * Calcule le score global d'une analyse à partir des réponses et d'une version
- * de grille explicite.
+ * Calcule le score global d'une analyse à partir des réponses et des critères
+ * chargés depuis la base de données.
  *
- * @param reponses  Map critere_id → valeur brute (stockable dans analyse_reponses)
- * @param grille    Version de grille chargée depuis la DB (ou fournie en test)
- * @returns         Résultat complet du scoring, incluant le détail par catégorie
+ * Le poids de chaque catégorie dans le score global est calculé comme la
+ * somme des poids de ses critères (pas de hiérarchie séparée).
+ *
+ * @param reponses     Map critere_id → valeur brute
+ * @param criteres     Critères avec poids et seuils (depuis table criteres)
+ * @param seuilsReco   Seuils de recommandation (optionnel, défaut 70/50)
+ * @returns            Résultat complet du scoring
  */
 export function calculerScore(
   reponses: ReponsesMap,
-  grille: GrilleVersionConfig,
+  criteres: CritereConfig[],
+  seuilsReco: SeuilsRecommandation = DEFAULT_SEUILS,
 ): ScoreResult {
   // Regrouper les critères par catégorie
   const categoriesMap = new Map<string, CritereConfig[]>();
-  for (const critere of grille.criteres) {
+  for (const critere of criteres) {
     const liste = categoriesMap.get(critere.categorie) ?? [];
     liste.push(critere);
     categoriesMap.set(critere.categorie, liste);
@@ -128,10 +135,11 @@ export function calculerScore(
   let scoreGlobalNumerateur = 0;
   let scoreGlobalDenominateur = 0;
 
-  for (const [categorie, criteres] of categoriesMap.entries()) {
-    const poidsCategorie = grille.poidsCategories[categorie] ?? 0;
+  for (const [categorie, critereList] of categoriesMap.entries()) {
+    // Poids total de la catégorie = somme des poids de ses critères
+    const totalPoidsCat = critereList.reduce((s, c) => s + c.poids, 0);
 
-    const critereResults: ScoreCritere[] = criteres.map((critere) => {
+    const critereResults: ScoreCritere[] = critereList.map((critere) => {
       const valeur = reponses[critere.id] ?? null;
       const scoreObtenu = calculerScoreCritere(critere, valeur);
       return {
@@ -147,18 +155,18 @@ export function calculerScore(
       critereResults.map((c) => ({ score: c.scoreObtenu, poids: c.poids })),
     );
 
-    const scoreContribution = Math.round((scoreAggrege * poidsCategorie) / 100);
+    const scoreContribution = Math.round((scoreAggrege * totalPoidsCat) / 100);
 
     categories.push({
       categorie,
       scoreAggrege,
-      poids: poidsCategorie,
+      poids: totalPoidsCat,
       scoreContribution,
       criteres: critereResults,
     });
 
-    scoreGlobalNumerateur += scoreAggrege * poidsCategorie;
-    scoreGlobalDenominateur += poidsCategorie;
+    scoreGlobalNumerateur += scoreAggrege * totalPoidsCat;
+    scoreGlobalDenominateur += totalPoidsCat;
   }
 
   const scoreGlobal =
@@ -167,9 +175,8 @@ export function calculerScore(
       : 0;
 
   return {
-    grilleVersionId: grille.id,
     scoreGlobal,
-    recommandation: recommandationFromScore(scoreGlobal, grille.seuils),
+    recommandation: recommandationFromScore(scoreGlobal, seuilsReco),
     categories,
     calculatedAt: new Date().toISOString(),
   };

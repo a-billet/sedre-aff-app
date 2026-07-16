@@ -3,7 +3,7 @@
  */
 export { calculerScore, calculerPreBilan } from "./engine";
 export type {
-  GrilleVersionConfig,
+  SeuilsRecommandation,
   CritereConfig,
   OptionScore,
   SeuilQuantitatif,

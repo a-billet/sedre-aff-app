@@ -2,168 +2,73 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
+import type { Json } from "@/lib/supabase/types";
+
+type MiseAJourCritere = {
+  id: string;
+  poids: number;
+  seuils: unknown;
+  /** updated_at lu côté client — sert de jeton de verrouillage optimiste */
+  updated_at: string;
+};
+
+type SauvegarderResult =
+  | { ok: true; updatedAts: Record<string, string> }
+  | { ok: false; message: string };
 
 /**
- * Publie une version brouillon :
- * 1. Archive la version active actuelle (s'il y en a une)
- * 2. Passe la version brouillon en statut "active"
+ * Sauvegarde les poids et seuils de tous les critères en une seule passe.
  *
- * Tout se fait dans la même transaction logique — les deux UPDATE
- * doivent réussir ou l'opération est annulée.
+ * Verrouillage optimiste : chaque UPDATE est conditionné à l'égalité de
+ * updated_at entre le client et la base. Si un critère a été modifié entre
+ * le chargement de la page et la sauvegarde, l'opération entière est rejetée.
  */
-export async function publierGrille(grilleId: string) {
+export async function sauvegarderCriteres(
+  mises_a_jour: MiseAJourCritere[],
+): Promise<SauvegarderResult> {
   const supabase = await createClient();
 
-  // Vérification de droits côté serveur
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) throw new Error("Non authentifié");
+  if (!user) return { ok: false, message: "Non authentifié" };
 
   const { data: profile } = await supabase
     .from("users")
     .select("is_super_admin")
     .eq("id", user.id)
     .single();
-  if (!profile?.is_super_admin) throw new Error("Accès refusé");
+  if (!profile?.is_super_admin) return { ok: false, message: "Accès refusé" };
 
-  // Archiver la version active actuelle
-  const { error: archiveError } = await supabase
-    .from("grille_versions")
-    .update({ statut: "archivee", updated_at: new Date().toISOString() })
-    .eq("statut", "active");
+  const now = new Date().toISOString();
+  const updatedAts: Record<string, string> = {};
 
-  if (archiveError)
-    throw new Error(`Archivage échoué : ${archiveError.message}`);
+  for (const { id, poids, seuils, updated_at } of mises_a_jour) {
+    const { data, error } = await supabase
+      .from("criteres")
+      .update({ poids, seuils: seuils as Json, updated_at: now })
+      .eq("id", id)
+      .eq("updated_at", updated_at) // verrouillage optimiste
+      .select("id, updated_at");
 
-  // Publier le brouillon
-  const { error: publishError } = await supabase
-    .from("grille_versions")
-    .update({
-      statut: "active",
-      published_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id", grilleId)
-    .eq("statut", "brouillon"); // protection contre une double publication
+    if (error)
+      return {
+        ok: false,
+        message: `Erreur sur critère ${id} : ${error.message}`,
+      };
 
-  if (publishError)
-    throw new Error(`Publication échouée : ${publishError.message}`);
-
-  revalidatePath("/admin");
-  redirect("/admin");
-}
-
-/**
- * Crée un nouveau brouillon en dupliquant la version active (ou vide si aucune).
- */
-export async function creerBrouillon(description: string) {
-  const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) throw new Error("Non authentifié");
-
-  const { data: profile } = await supabase
-    .from("users")
-    .select("is_super_admin")
-    .eq("id", user.id)
-    .single();
-  if (!profile?.is_super_admin) throw new Error("Accès refusé");
-
-  // Créer la nouvelle version
-  const { data: newVersion, error: versionError } = await supabase
-    .from("grille_versions")
-    .insert({
-      statut: "brouillon",
-      description,
-      created_by: user.id,
-    })
-    .select()
-    .single();
-
-  if (versionError || !newVersion)
-    throw new Error(`Création échouée : ${versionError?.message}`);
-
-  // Dupliquer les pondérations de la version active (si elle existe)
-  const { data: activeVersion } = await supabase
-    .from("grille_versions")
-    .select("id")
-    .eq("statut", "active")
-    .single();
-
-  if (activeVersion) {
-    const { data: ponderations } = await supabase
-      .from("grille_ponderations")
-      .select("critere_id, poids, seuils")
-      .eq("grille_version_id", activeVersion.id);
-
-    if (ponderations && ponderations.length > 0) {
-      const toInsert = ponderations.map((p) => ({
-        grille_version_id: newVersion.id,
-        critere_id: p.critere_id,
-        poids: p.poids,
-        seuils: p.seuils,
-      }));
-
-      const { error: pondError } = await supabase
-        .from("grille_ponderations")
-        .insert(toInsert);
-
-      if (pondError)
-        throw new Error(
-          `Duplication des pondérations échouée : ${pondError.message}`,
-        );
+    if (!data || data.length === 0) {
+      return {
+        ok: false,
+        message:
+          "Cette grille a été modifiée entre-temps par un autre administrateur. " +
+          "Rechargez la page avant de sauvegarder.",
+      };
     }
+
+    updatedAts[id] = data[0].updated_at;
   }
 
   revalidatePath("/admin");
-  redirect(`/admin/grilles/${newVersion.id}`);
-}
-
-/**
- * Met à jour le poids et les seuils d'un critère dans un brouillon.
- */
-export async function updatePonderation(
-  grilleId: string,
-  critereId: string,
-  poids: number,
-  seuils: unknown,
-) {
-  const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) throw new Error("Non authentifié");
-
-  const { data: profile } = await supabase
-    .from("users")
-    .select("is_super_admin")
-    .eq("id", user.id)
-    .single();
-  if (!profile?.is_super_admin) throw new Error("Accès refusé");
-
-  // S'assurer que la version est bien un brouillon
-  const { data: version } = await supabase
-    .from("grille_versions")
-    .select("statut")
-    .eq("id", grilleId)
-    .single();
-
-  if (!version || version.statut !== "brouillon")
-    throw new Error("Seul un brouillon peut être modifié");
-
-  const { error } = await supabase.from("grille_ponderations").upsert({
-    grille_version_id: grilleId,
-    critere_id: critereId,
-    poids,
-    seuils: seuils as never,
-  });
-
-  if (error) throw new Error(`Mise à jour échouée : ${error.message}`);
-
-  revalidatePath(`/admin/grilles/${grilleId}`);
+  return { ok: true, updatedAts };
 }

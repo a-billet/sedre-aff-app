@@ -2,8 +2,8 @@
  * lib/scoring/types.ts
  *
  * Types du moteur de calcul, découplés du schéma UI.
- * Ces types correspondent à la grille chargée depuis Supabase
- * (tables grille_versions + grille_ponderations + criteres).
+ * Ces types correspondent aux critères chargés depuis Supabase
+ * (table criteres avec colonnes poids et seuils).
  */
 
 // ============================================================
@@ -24,6 +24,13 @@ export interface SeuilQuantitatif {
   score: number; // 0–100
 }
 
+/** Seuils de recommandation finale */
+export interface SeuilsRecommandation {
+  go: number; // score >= go → "go"
+  goReserve: number; // score >= goReserve → "go_reserve"
+  // score < goReserve → "no_go"
+}
+
 /** Configuration d'un critère dans une version de grille */
 export interface CritereConfig {
   id: string;
@@ -36,23 +43,6 @@ export interface CritereConfig {
   options?: OptionScore[];
   /** Seuils quantitatifs (pour type_saisie=quantitatif) */
   seuilsQuantitatif?: SeuilQuantitatif[];
-}
-
-/** Configuration complète d'une version de grille, prête pour le moteur */
-export interface GrilleVersionConfig {
-  id: string;
-  statut: "brouillon" | "active" | "archivee";
-  publishedAt: string | null;
-  /** Critères organisés par phase (categorie). Clé = nom de catégorie */
-  criteres: CritereConfig[];
-  /** Poids des catégories dans le score global (clé = categorie) */
-  poidsCategories: Record<string, number>;
-  /** Seuils de recommandation */
-  seuils: {
-    go: number; // score >= seuils.go → GO
-    goReserve: number; // score >= seuils.goReserve → GO avec réserves
-    // score < goReserve → NO GO
-  };
 }
 
 // ============================================================
@@ -92,7 +82,6 @@ export interface ScoreCategorie {
 
 /** Résultat complet du moteur de scoring */
 export interface ScoreResult {
-  grilleVersionId: string;
   scoreGlobal: number; // 0–100
   recommandation: "go" | "go_reserve" | "no_go";
   categories: ScoreCategorie[];

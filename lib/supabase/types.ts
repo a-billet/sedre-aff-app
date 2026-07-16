@@ -14,7 +14,6 @@ export type Json =
   | { [key: string]: Json | undefined }
   | Json[];
 
-export type StatutGrille = "brouillon" | "active" | "archivee";
 export type StatutAnalyse = "brouillon" | "en_cours" | "finalisee";
 export type TypeSaisie = "qualitatif" | "quantitatif";
 
@@ -50,7 +49,10 @@ export type Database = {
           libelle: string;
           ordre: number;
           type_saisie: TypeSaisie;
+          poids: number;
+          seuils: Json;
           created_at: string;
+          updated_at: string;
         };
         Insert: {
           id?: string;
@@ -58,66 +60,23 @@ export type Database = {
           libelle: string;
           ordre: number;
           type_saisie: TypeSaisie;
+          poids?: number;
+          seuils?: Json;
           created_at?: string;
+          updated_at?: string;
         };
         Update: {
           categorie?: string;
           libelle?: string;
           ordre?: number;
           type_saisie?: TypeSaisie;
-        };
-        Relationships: [];
-      };
-      grille_versions: {
-        Row: {
-          id: string;
-          statut: StatutGrille;
-          published_at: string | null;
-          created_by: string;
-          created_at: string;
-          updated_at: string;
-          description: string | null;
-        };
-        Insert: {
-          id?: string;
-          statut?: StatutGrille;
-          published_at?: string | null;
-          created_by: string;
-          created_at?: string;
-          updated_at?: string;
-          description?: string | null;
-        };
-        Update: {
-          statut?: StatutGrille;
-          published_at?: string | null;
-          updated_at?: string;
-          description?: string | null;
-        };
-        Relationships: [];
-      };
-      grille_ponderations: {
-        Row: {
-          id: string;
-          grille_version_id: string;
-          critere_id: string;
-          poids: number;
-          seuils: Json;
-          created_at: string;
-        };
-        Insert: {
-          id?: string;
-          grille_version_id: string;
-          critere_id: string;
-          poids: number;
-          seuils: Json;
-          created_at?: string;
-        };
-        Update: {
           poids?: number;
           seuils?: Json;
+          updated_at?: string;
         };
         Relationships: [];
       };
+
       fonciers: {
         Row: {
           id: string;
@@ -161,7 +120,6 @@ export type Database = {
         Row: {
           id: string;
           foncier_id: string;
-          grille_version_id: string;
           statut: StatutAnalyse;
           scores_calcules: Json;
           pre_bilan: Json | null;
@@ -173,7 +131,6 @@ export type Database = {
         Insert: {
           id?: string;
           foncier_id: string;
-          grille_version_id: string;
           statut?: StatutAnalyse;
           scores_calcules?: Json;
           pre_bilan?: Json | null;
@@ -233,7 +190,6 @@ export type Database = {
     Views: Record<string, never>;
     Functions: Record<string, never>;
     Enums: {
-      statut_grille: StatutGrille;
       statut_analyse: StatutAnalyse;
       type_saisie: TypeSaisie;
     };
