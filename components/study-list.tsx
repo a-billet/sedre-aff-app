@@ -53,7 +53,7 @@ export function StudyList({ studies, onSelect, onCreate, onDelete, userEmail, on
         <header className="relative z-10 flex flex-col gap-4 rounded-[28px] border border-white/60 bg-white/80 p-4 shadow-[0_20px_80px_-40px_rgba(15,23,42,0.45)] backdrop-blur xl:flex-row xl:items-center xl:justify-between xl:p-5">
           <div className="flex items-center gap-4">
             <div className="flex size-14 items-center justify-center rounded-2xl bg-primary/10 ring-1 ring-primary/15">
-              <Image src="/logo.jpg" alt="Logo SEDRE" width={50} height={50} priority />
+              <Image src="/logo.jpg" alt="Logo SEDRE" width={50} height={50} priority style={{ width: 'auto', height: 'auto' }} />
             </div>
             <div>
               <p className="text-xs font-medium uppercase tracking-[0.32em] text-primary/80">SEDRE</p>

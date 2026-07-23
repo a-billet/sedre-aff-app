@@ -63,7 +63,7 @@ function LoginForm() {
       {/* Logo + brand */}
       <div className="mb-8 flex flex-col items-center gap-4">
         <div className="flex size-20 items-center justify-center rounded-3xl bg-white shadow-[0_20px_60px_-20px_rgba(15,23,42,0.3)] ring-1 ring-black/5">
-          <Image src="/logo.jpg" alt="Logo SEDRE" width={64} height={64} priority className="rounded-2xl" />
+          <Image src="/logo.jpg" alt="Logo SEDRE" width={64} height={64} priority className="rounded-2xl" style={{ width: 'auto', height: 'auto' }} />
         </div>
         <div className="text-center">
           <h1 className="mt-1.5 text-2xl font-semibold tracking-tight text-foreground">Analyses de faisabilité foncière</h1>

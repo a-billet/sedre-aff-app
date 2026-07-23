@@ -61,7 +61,6 @@ export async function proxy(request: NextRequest) {
       .select("is_super_admin")
       .eq("id", user.id)
       .single();
-    console.log("profile", profile);
 
     if (!profile?.is_super_admin) {
       // Retour à l'accueil avec un message d'erreur

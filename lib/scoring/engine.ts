@@ -21,6 +21,7 @@ import type {
   ModePreBilan,
   CritereConfig,
   ValeurReponse,
+  SeuilQuantitatif,
 } from "./types";
 
 // ============================================================
@@ -28,38 +29,64 @@ import type {
 // ============================================================
 
 /**
- * Calcule le score d'une option qualitative pour un critère donné.
- * Retourne 0 si la valeur n'est pas reconnue.
+ * select — dropdown : score de l'option choisie.
+ * La valeur est la clé de l'option (ex. 'UA', 'excellent').
  */
-function scoreOptionQualitative(
-  critere: CritereConfig,
-  valeur: ValeurReponse,
-): number {
+function scoreSelect(critere: CritereConfig, valeur: ValeurReponse): number {
   if (!critere.options || valeur === null || valeur === undefined) return 0;
-  const option = critere.options.find((o) => o.valeur === String(valeur));
+  const option = critere.options.find((o) => o.key === String(valeur));
   return option?.score ?? 0;
 }
 
 /**
- * Calcule le score d'une valeur quantitative selon les seuils du critère.
- * Retourne 0 si hors de tous les seuils.
+ * checkbox — booléen : 100 si non coché, (100 - malus) si coché.
+ * Le malus est lu depuis critere.config.malus (défaut 0).
  */
-function scoreQuantitatif(
-  critere: CritereConfig,
-  valeur: ValeurReponse,
-): number {
-  if (
-    !critere.seuilsQuantitatif ||
-    valeur === null ||
-    valeur === undefined ||
-    typeof valeur !== "number"
-  )
-    return 0;
+function scoreCheckbox(critere: CritereConfig, valeur: ValeurReponse): number {
+  const checked = valeur === true || valeur === "true" || valeur === 1;
+  if (!checked) return 100;
+  const malus = (critere.config?.malus as number | undefined) ?? 0;
+  return Math.max(0, 100 - malus);
+}
 
-  const seuil = critere.seuilsQuantitatif.find(
-    (s) => valeur >= s.min && valeur <= s.max,
-  );
+/**
+ * threshold — input numérique : score calculé par tranche.
+ * Les seuils sont lus depuis critere.config.seuils (tableau SeuilQuantitatif[]).
+ */
+function scoreThreshold(critere: CritereConfig, valeur: ValeurReponse): number {
+  if (valeur === null || valeur === undefined || typeof valeur !== "number")
+    return 0;
+  const rawSeuils = critere.config?.seuils;
+  if (!Array.isArray(rawSeuils)) return 0;
+  const seuils = rawSeuils as SeuilQuantitatif[];
+  const seuil = seuils.find((s) => valeur >= s.min && valeur <= s.max);
   return seuil?.score ?? 0;
+}
+
+/**
+ * additive — plusieurs checkbox indépendantes qui s'additionnent.
+ * La valeur est un tableau de clés cochées (ex. ['commerces', 'ecoles']).
+ * Le score est la somme des scores des options cochées.
+ */
+function scoreAdditive(critere: CritereConfig, valeur: ValeurReponse): number {
+  if (!critere.options) return 0;
+
+  let checkedKeys: string[] = [];
+  if (Array.isArray(valeur)) {
+    checkedKeys = valeur.map(String);
+  } else if (typeof valeur === "string") {
+    try {
+      const parsed = JSON.parse(valeur);
+      checkedKeys = Array.isArray(parsed) ? parsed.map(String) : [];
+    } catch {
+      checkedKeys = valeur ? valeur.split(",").map((k) => k.trim()) : [];
+    }
+  }
+
+  return checkedKeys.reduce((sum, key) => {
+    const opt = critere.options!.find((o) => o.key === key);
+    return sum + (opt?.score ?? 0);
+  }, 0);
 }
 
 /**
@@ -69,10 +96,18 @@ function calculerScoreCritere(
   critere: CritereConfig,
   valeur: ValeurReponse,
 ): number {
-  if (critere.typeSaisie === "qualitatif") {
-    return scoreOptionQualitative(critere, valeur);
+  switch (critere.type) {
+    case "select":
+      return scoreSelect(critere, valeur);
+    case "checkbox":
+      return scoreCheckbox(critere, valeur);
+    case "threshold":
+      return scoreThreshold(critere, valeur);
+    case "additive":
+      return Math.min(100, scoreAdditive(critere, valeur));
+    default:
+      return 0;
   }
-  return scoreQuantitatif(critere, valeur);
 }
 
 /**
@@ -123,12 +158,14 @@ export function calculerScore(
   criteres: CritereConfig[],
   seuilsReco: SeuilsRecommandation = DEFAULT_SEUILS,
 ): ScoreResult {
-  // Regrouper les critères par catégorie
+  // Regrouper les critères actifs par phase
   const categoriesMap = new Map<string, CritereConfig[]>();
   for (const critere of criteres) {
-    const liste = categoriesMap.get(critere.categorie) ?? [];
+    if (!critere.active) continue;
+    const key = String(critere.phase);
+    const liste = categoriesMap.get(key) ?? [];
     liste.push(critere);
-    categoriesMap.set(critere.categorie, liste);
+    categoriesMap.set(key, liste);
   }
 
   const categories: ScoreCategorie[] = [];
@@ -137,16 +174,16 @@ export function calculerScore(
 
   for (const [categorie, critereList] of categoriesMap.entries()) {
     // Poids total de la catégorie = somme des poids de ses critères
-    const totalPoidsCat = critereList.reduce((s, c) => s + c.poids, 0);
+    const totalPoidsCat = critereList.reduce((s, c) => s + c.weight, 0);
 
     const critereResults: ScoreCritere[] = critereList.map((critere) => {
       const valeur = reponses[critere.id] ?? null;
       const scoreObtenu = calculerScoreCritere(critere, valeur);
       return {
         critereId: critere.id,
-        libelle: critere.libelle,
+        libelle: critere.label,
         scoreObtenu,
-        poids: critere.poids,
+        poids: critere.weight,
         valeur,
       };
     });

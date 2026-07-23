@@ -10,14 +10,18 @@
 // GRILLE DE NOTATION (input du moteur)
 // ============================================================
 
-/** Score associé à une option qualitative d'un critère */
+/** Type de saisie d'un critère — correspond à scoring_criteria.type */
+export type CriteriaType = "select" | "checkbox" | "threshold" | "additive";
+
+/** Score associé à une option qualitative d'un critère (depuis scoring_options) */
 export interface OptionScore {
-  valeur: string;
+  key: string; // scoring_options.key
+  label: string; // scoring_options.label
   score: number; // 0–100
-  label?: string;
+  sort_order?: number;
 }
 
-/** Seuil quantitatif : une tranche de valeur → un score */
+/** Seuil quantitatif : une tranche de valeur → un score (utilisé en interne par le moteur) */
 export interface SeuilQuantitatif {
   min: number;
   max: number;
@@ -31,18 +35,23 @@ export interface SeuilsRecommandation {
   // score < goReserve → "no_go"
 }
 
-/** Configuration d'un critère dans une version de grille */
+/** Configuration d'un critère chargé depuis scoring_criteria + scoring_options */
 export interface CritereConfig {
   id: string;
-  categorie: string;
-  libelle: string;
-  ordre: number;
-  typeSaisie: "qualitatif" | "quantitatif";
-  poids: number; // 0–100, poids relatif au sein de sa phase
-  /** Options qualitatives avec leur score (pour type_saisie=qualitatif) */
+  phase: 1 | 2 | 3; // scoring_criteria.phase
+  key: string; // scoring_criteria.key (identifiant métier)
+  label: string; // scoring_criteria.label
+  type: CriteriaType; // scoring_criteria.type
+  weight: number; // scoring_criteria.weight (0–100)
+  /** Paramètres spécifiques au type :
+   *  - threshold → { seuils: SeuilQuantitatif[] }
+   *  - checkbox  → { malus: number }
+   */
+  config?: Record<string, unknown> | null;
+  sort_order: number; // scoring_criteria.sort_order
+  active: boolean;
+  /** Options disponibles (depuis scoring_options) — pour types select / additive */
   options?: OptionScore[];
-  /** Seuils quantitatifs (pour type_saisie=quantitatif) */
-  seuilsQuantitatif?: SeuilQuantitatif[];
 }
 
 // ============================================================

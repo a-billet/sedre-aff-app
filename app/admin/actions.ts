@@ -2,26 +2,24 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
-import type { Json } from "@/lib/supabase/types";
+
+type MiseAJourOption = {
+  id: string;
+  score: number;
+};
 
 type MiseAJourCritere = {
   id: string;
-  poids: number;
-  seuils: unknown;
-  /** updated_at lu côté client — sert de jeton de verrouillage optimiste */
-  updated_at: string;
+  weight: number;
+  config?: unknown;
+  options?: MiseAJourOption[];
 };
 
-type SauvegarderResult =
-  | { ok: true; updatedAts: Record<string, string> }
-  | { ok: false; message: string };
+type SauvegarderResult = { ok: true } | { ok: false; message: string };
 
 /**
- * Sauvegarde les poids et seuils de tous les critères en une seule passe.
- *
- * Verrouillage optimiste : chaque UPDATE est conditionné à l'égalité de
- * updated_at entre le client et la base. Si un critère a été modifié entre
- * le chargement de la page et la sauvegarde, l'opération entière est rejetée.
+ * Sauvegarde les poids, configs et scores d'options de tous les critères.
+ * Met à jour scoring_criteria.weight / config et scoring_options.score.
  */
 export async function sauvegarderCriteres(
   mises_a_jour: MiseAJourCritere[],
@@ -40,35 +38,41 @@ export async function sauvegarderCriteres(
     .single();
   if (!profile?.is_super_admin) return { ok: false, message: "Accès refusé" };
 
-  const now = new Date().toISOString();
-  const updatedAts: Record<string, string> = {};
+  for (const { id, weight, config, options } of mises_a_jour) {
+    // Mettre à jour le critère (poids + config)
+    const updatePayload: Record<string, unknown> = { weight };
+    if (config !== undefined) updatePayload.config = config;
 
-  for (const { id, poids, seuils, updated_at } of mises_a_jour) {
-    const { data, error } = await supabase
-      .from("criteres")
-      .update({ poids, seuils: seuils as Json, updated_at: now })
-      .eq("id", id)
-      .eq("updated_at", updated_at) // verrouillage optimiste
-      .select("id, updated_at");
+    const { error: criteriaError } = await supabase
+      .from("scoring_criteria")
+      .update(updatePayload)
+      .eq("id", id);
 
-    if (error)
+    if (criteriaError) {
       return {
         ok: false,
-        message: `Erreur sur critère ${id} : ${error.message}`,
-      };
-
-    if (!data || data.length === 0) {
-      return {
-        ok: false,
-        message:
-          "Cette grille a été modifiée entre-temps par un autre administrateur. " +
-          "Rechargez la page avant de sauvegarder.",
+        message: `Erreur sur critère ${id} : ${criteriaError.message}`,
       };
     }
 
-    updatedAts[id] = data[0].updated_at;
+    // Mettre à jour le score de chaque option
+    if (options && options.length > 0) {
+      for (const opt of options) {
+        const { error: optError } = await supabase
+          .from("scoring_options")
+          .update({ score: opt.score })
+          .eq("id", opt.id);
+
+        if (optError) {
+          return {
+            ok: false,
+            message: `Erreur sur option ${opt.id} : ${optError.message}`,
+          };
+        }
+      }
+    }
   }
 
   revalidatePath("/admin");
-  return { ok: true, updatedAts };
+  return { ok: true };
 }

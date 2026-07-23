@@ -40,7 +40,6 @@ export default function Page() {
     window.location.href = '/login';
   };
 
-  // Load studies and current study from localStorage
   useEffect(() => {
     const loadedStudies = getStudies();
     setStudies(loadedStudies);
@@ -55,7 +54,6 @@ export default function Page() {
     setIsLoading(false);
   }, []);
 
-  // Save current study whenever it changes
   const updateCurrentStudy = useCallback((study: FeasibilityStudy) => {
     setCurrentStudy(study);
     saveStudy(study);

@@ -15,7 +15,7 @@ export type Json =
   | Json[];
 
 export type StatutAnalyse = "brouillon" | "en_cours" | "finalisee";
-export type TypeSaisie = "qualitatif" | "quantitatif";
+export type CriteriaType = "select" | "checkbox" | "threshold" | "additive";
 
 export type Database = {
   public: {
@@ -42,37 +42,63 @@ export type Database = {
         };
         Relationships: [];
       };
-      criteres: {
+      scoring_criteria: {
         Row: {
           id: string;
-          categorie: string;
-          libelle: string;
-          ordre: number;
-          type_saisie: TypeSaisie;
-          poids: number;
-          seuils: Json;
-          created_at: string;
-          updated_at: string;
+          phase: 1 | 2 | 3;
+          key: string;
+          label: string;
+          type: CriteriaType;
+          weight: number;
+          config: Json | null;
+          sort_order: number;
+          active: boolean;
         };
         Insert: {
           id?: string;
-          categorie: string;
-          libelle: string;
-          ordre: number;
-          type_saisie: TypeSaisie;
-          poids?: number;
-          seuils?: Json;
-          created_at?: string;
-          updated_at?: string;
+          phase: 1 | 2 | 3;
+          key: string;
+          label: string;
+          type: CriteriaType;
+          weight?: number;
+          config?: Json | null;
+          sort_order?: number;
+          active?: boolean;
         };
         Update: {
-          categorie?: string;
-          libelle?: string;
-          ordre?: number;
-          type_saisie?: TypeSaisie;
-          poids?: number;
-          seuils?: Json;
-          updated_at?: string;
+          phase?: 1 | 2 | 3;
+          key?: string;
+          label?: string;
+          type?: CriteriaType;
+          weight?: number;
+          config?: Json | null;
+          sort_order?: number;
+          active?: boolean;
+        };
+        Relationships: [];
+      };
+      scoring_options: {
+        Row: {
+          id: string;
+          criteria_id: string;
+          key: string;
+          label: string;
+          score: number;
+          sort_order: number;
+        };
+        Insert: {
+          id?: string;
+          criteria_id: string;
+          key: string;
+          label: string;
+          score: number;
+          sort_order?: number;
+        };
+        Update: {
+          key?: string;
+          label?: string;
+          score?: number;
+          sort_order?: number;
         };
         Relationships: [];
       };
@@ -191,7 +217,7 @@ export type Database = {
     Functions: Record<string, never>;
     Enums: {
       statut_analyse: StatutAnalyse;
-      type_saisie: TypeSaisie;
+      criteria_type: CriteriaType;
     };
     CompositeTypes: Record<string, never>;
   };

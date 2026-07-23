@@ -12,67 +12,85 @@ import {
 } from "@/components/ui/card";
 import type { Database } from "@/lib/supabase/types";
 
-type CritereRow = Database["public"]["Tables"]["criteres"]["Row"];
+type ScoringCriteriaRow = Database["public"]["Tables"]["scoring_criteria"]["Row"];
+type ScoringOptionRow = Database["public"]["Tables"]["scoring_options"]["Row"];
+
+type CriteriaWithOptions = ScoringCriteriaRow & {
+    scoring_options: ScoringOptionRow[];
+};
 
 interface CritereState {
-    poids: number;
-    options: { valeur: string; score: number }[];
-    /** Jeton de verrouillage optimiste — mis à jour après chaque sauvegarde */
-    updated_at: string;
+    weight: number;
+    options: { id: string; key: string; label: string; score: number }[];
+    config: Record<string, unknown> | null;
 }
 
-function buildInitialState(criteres: CritereRow[]): Record<string, CritereState> {
+const PHASE_LABELS: Record<number, string> = {
+    1: "Phase 1 — Analyse initiale",
+    2: "Phase 2 — Analyse détaillée",
+    3: "Phase 3 — Analyse financière",
+};
+
+function buildInitialState(criteria: CriteriaWithOptions[]): Record<string, CritereState> {
     const state: Record<string, CritereState> = {};
-    for (const c of criteres) {
-        const seuils = c.seuils as
-            | { type?: string; options?: { valeur: string; score: number }[] }
-            | null;
+    for (const c of criteria) {
         state[c.id] = {
-            poids: Number(c.poids),
-            options:
-                seuils?.type === "qualitatif" && seuils.options
-                    ? seuils.options
-                    : [],
-            updated_at: c.updated_at,
+            weight: Number(c.weight),
+            options: [...c.scoring_options]
+                .sort((a, b) => a.sort_order - b.sort_order)
+                .map((o) => ({ id: o.id, key: o.key, label: o.label, score: Number(o.score) })),
+            config: (c.config as Record<string, unknown> | null) ?? null,
         };
     }
     return state;
 }
 
-function groupByCategorie(criteres: CritereRow[]) {
-    const map = new Map<string, CritereRow[]>();
-    for (const c of criteres) {
-        const list = map.get(c.categorie) ?? [];
+function groupByPhase(criteria: CriteriaWithOptions[]) {
+    const map = new Map<number, CriteriaWithOptions[]>();
+    for (const c of criteria) {
+        const list = map.get(c.phase) ?? [];
         list.push(c);
-        map.set(c.categorie, list);
+        map.set(c.phase, list);
     }
     return map;
 }
 
-export function GrilleCriteresEditor({ criteres }: { criteres: CritereRow[] }) {
+export function GrilleCriteresEditor({ criteria }: { criteria: CriteriaWithOptions[] }) {
     const [states, setStates] = useState<Record<string, CritereState>>(() =>
-        buildInitialState(criteres),
+        buildInitialState(criteria),
     );
     const [isPending, startTransition] = useTransition();
     const [error, setError] = useState<string | null>(null);
     const [saved, setSaved] = useState(false);
 
-    function updatePoids(critereId: string, value: string) {
+    function updateWeight(criteriaId: string, value: string) {
         const num = Math.min(100, Math.max(0, Number(value) || 0));
         setStates((prev) => ({
             ...prev,
-            [critereId]: { ...prev[critereId], poids: num },
+            [criteriaId]: { ...prev[criteriaId], weight: num },
         }));
         setSaved(false);
     }
 
-    function updateOptionScore(critereId: string, index: number, value: string) {
+    function updateOptionScore(criteriaId: string, index: number, value: string) {
         const score = Math.min(100, Math.max(0, Number(value) || 0));
         setStates((prev) => {
-            const opts = [...(prev[critereId]?.options ?? [])];
+            const opts = [...(prev[criteriaId]?.options ?? [])];
             opts[index] = { ...opts[index], score };
-            return { ...prev, [critereId]: { ...prev[critereId], options: opts } };
+            return { ...prev, [criteriaId]: { ...prev[criteriaId], options: opts } };
         });
+        setSaved(false);
+    }
+
+    function updateCheckboxMalus(criteriaId: string, value: string) {
+        const malus = Math.min(100, Math.max(0, Number(value) || 0));
+        setStates((prev) => ({
+            ...prev,
+            [criteriaId]: {
+                ...prev[criteriaId],
+                config: { ...(prev[criteriaId]?.config ?? {}), malus },
+            },
+        }));
         setSaved(false);
     }
 
@@ -90,17 +108,15 @@ export function GrilleCriteresEditor({ criteres }: { criteres: CritereRow[] }) {
             setError(null);
             setSaved(false);
 
-            const mises_a_jour = criteres.map((c) => {
+            const mises_a_jour = criteria.map((c) => {
                 const st = states[c.id]!;
-                const seuils =
-                    c.type_saisie === "qualitatif"
-                        ? { type: "qualitatif", options: st.options }
-                        : {};
                 return {
                     id: c.id,
-                    poids: st.poids,
-                    seuils,
-                    updated_at: st.updated_at,
+                    weight: st.weight,
+                    config: c.type === "threshold" || c.type === "checkbox" ? st.config : undefined,
+                    options: (c.type === "select" || c.type === "additive")
+                        ? st.options.map((o) => ({ id: o.id, score: o.score }))
+                        : [],
                 };
             });
 
@@ -111,100 +127,123 @@ export function GrilleCriteresEditor({ criteres }: { criteres: CritereRow[] }) {
                 return;
             }
 
-            // Mettre à jour les jetons optimistes avec les nouvelles valeurs DB
-            setStates((prev) => {
-                const next = { ...prev };
-                for (const [id, updated_at] of Object.entries(result.updatedAts)) {
-                    if (next[id]) next[id] = { ...next[id], updated_at };
-                }
-                return next;
-            });
             setSaved(true);
         });
     }
 
-    const byCategorie = groupByCategorie(criteres);
+    const byPhase = groupByPhase(criteria);
 
     return (
         <div className="space-y-6">
-            {Array.from(byCategorie.entries()).map(([categorie, cats]) => (
-                <Card key={categorie}>
-                    <CardHeader>
-                        <CardTitle className="text-base">{categorie}</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                        {cats.map((critere) => {
-                            const state = states[critere.id];
-                            if (!state) return null;
-                            return (
-                                <div
-                                    key={critere.id}
-                                    className="border rounded-md p-4 space-y-3"
-                                >
-                                    <div className="flex items-center justify-between">
-                                        <div>
-                                            <p className="font-medium text-sm">{critere.libelle}</p>
-                                            <p className="text-xs text-muted-foreground">
-                                                {critere.type_saisie}
-                                            </p>
-                                        </div>
-                                        <div className="flex items-center gap-2">
-                                            <span className="text-xs text-muted-foreground">
-                                                Poids
-                                            </span>
-                                            <Input
-                                                type="number"
-                                                min={0}
-                                                max={100}
-                                                value={state.poids}
-                                                onChange={(e) =>
-                                                    updatePoids(critere.id, e.target.value)
-                                                }
-                                                className="w-20 h-8 text-sm"
-                                            />
-                                        </div>
-                                    </div>
-
-                                    {critere.type_saisie === "qualitatif" &&
-                                        state.options.length > 0 && (
-                                            <div className="space-y-1">
-                                                <p className="text-xs font-medium text-muted-foreground">
-                                                    Scores par option
+            {Array.from(byPhase.entries())
+                .sort(([a], [b]) => a - b)
+                .map(([phase, items]) => (
+                    <Card key={phase}>
+                        <CardHeader>
+                            <CardTitle className="text-base">
+                                {PHASE_LABELS[phase] ?? `Phase ${phase}`}
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            {items.map((critere) => {
+                                const state = states[critere.id];
+                                if (!state) return null;
+                                return (
+                                    <div
+                                        key={critere.id}
+                                        className="border rounded-md p-4 space-y-3"
+                                    >
+                                        <div className="flex items-center justify-between">
+                                            <div>
+                                                <p className="font-medium text-sm">{critere.label}</p>
+                                                <p className="text-xs text-muted-foreground">
+                                                    {critere.type}
+                                                    {!critere.active && (
+                                                        <span className="ml-2 text-yellow-600">(inactif)</span>
+                                                    )}
                                                 </p>
-                                                <div className="grid gap-1.5">
-                                                    {state.options.map((opt, i) => (
-                                                        <div
-                                                            key={opt.valeur}
-                                                            className="flex items-center gap-2"
-                                                        >
-                                                            <span className="text-xs w-36 truncate">
-                                                                {opt.valeur}
-                                                            </span>
-                                                            <Input
-                                                                type="number"
-                                                                min={0}
-                                                                max={100}
-                                                                value={opt.score}
-                                                                onChange={(e) =>
-                                                                    updateOptionScore(
-                                                                        critere.id,
-                                                                        i,
-                                                                        e.target.value,
-                                                                    )
-                                                                }
-                                                                className="w-20 h-7 text-xs"
-                                                            />
-                                                        </div>
-                                                    ))}
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-xs text-muted-foreground">
+                                                    Poids
+                                                </span>
+                                                <Input
+                                                    type="number"
+                                                    min={0}
+                                                    max={100}
+                                                    value={state.weight}
+                                                    onChange={(e) =>
+                                                        updateWeight(critere.id, e.target.value)
+                                                    }
+                                                    className="w-20 h-8 text-sm"
+                                                />
+                                            </div>
+                                        </div>
+
+                                        {/* Options pour select / additive */}
+                                        {(critere.type === "select" || critere.type === "additive") &&
+                                            state.options.length > 0 && (
+                                                <div className="space-y-1">
+                                                    <p className="text-xs font-medium text-muted-foreground">
+                                                        Scores par option
+                                                    </p>
+                                                    <div className="grid gap-1.5">
+                                                        {state.options.map((opt, i) => (
+                                                            <div
+                                                                key={opt.key}
+                                                                className="flex items-center gap-2"
+                                                            >
+                                                                <span className="text-xs w-40 truncate">
+                                                                    {opt.label}
+                                                                </span>
+                                                                <Input
+                                                                    type="number"
+                                                                    min={0}
+                                                                    max={100}
+                                                                    value={opt.score}
+                                                                    onChange={(e) =>
+                                                                        updateOptionScore(
+                                                                            critere.id,
+                                                                            i,
+                                                                            e.target.value,
+                                                                        )
+                                                                    }
+                                                                    className="w-20 h-7 text-xs"
+                                                                />
+                                                            </div>
+                                                        ))}
+                                                    </div>
                                                 </div>
+                                            )}
+
+                                        {/* Malus pour checkbox */}
+                                        {critere.type === "checkbox" && (
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-xs text-muted-foreground w-40">
+                                                    Malus si coché (0–100)
+                                                </span>
+                                                <Input
+                                                    type="number"
+                                                    min={0}
+                                                    max={100}
+                                                    value={
+                                                        typeof state.config?.malus === "number"
+                                                            ? state.config.malus
+                                                            : 0
+                                                    }
+                                                    onChange={(e) =>
+                                                        updateCheckboxMalus(critere.id, e.target.value)
+                                                    }
+                                                    className="w-20 h-7 text-xs"
+                                                />
                                             </div>
                                         )}
-                                </div>
-                            );
-                        })}
-                    </CardContent>
-                </Card>
-            ))}
+                                    </div>
+                                );
+                            })}
+                        </CardContent>
+                    </Card>
+                ))}
 
             <div className="flex items-center gap-4 pt-2 pb-8">
                 <Button onClick={handleSauvegarder} disabled={isPending}>
