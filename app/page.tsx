@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { FeasibilityStudy, Phase1Data, Phase2Data, Phase3Data, Phase4Data, ProjectInfo } from '@/lib/types';
 import { createEmptyStudy } from '@/lib/config';
+import { createClient } from '@/lib/supabase/client';
 import { getStudies, saveStudy, deleteStudy, setCurrentStudyId, getCurrentStudyId, getStudy } from '@/lib/storage';
 import { StudyList } from '@/components/study-list';
 import { ProjectInfoForm } from '@/components/project-info-form';
@@ -16,6 +17,28 @@ export default function Page() {
   const [studies, setStudies] = useState<FeasibilityStudy[]>([]);
   const [currentStudy, setCurrentStudy] = useState<FeasibilityStudy | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [userEmail, setUserEmail] = useState<string | undefined>(undefined);
+
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.auth.getUser().then(async ({ data: { user } }) => {
+      if (!user) return;
+      setUserEmail(user.email);
+      const { data: profile } = await supabase
+        .from('users')
+        .select('is_super_admin')
+        .eq('id', user.id)
+        .single();
+      if (profile?.is_super_admin) setIsAdmin(true);
+    });
+  }, []);
+
+  const handleLogout = async () => {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    window.location.href = '/login';
+  };
 
   // Load studies and current study from localStorage
   useEffect(() => {
@@ -121,6 +144,9 @@ export default function Page() {
           onSelect={handleSelectStudy}
           onCreate={handleCreateStudy}
           onDelete={handleDeleteStudy}
+          userEmail={userEmail}
+          onLogout={handleLogout}
+          isAdmin={isAdmin}
         />
       </main>
     );
