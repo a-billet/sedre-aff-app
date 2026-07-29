@@ -6,7 +6,6 @@ import { getScoreColor, getScoreLabel } from '@/lib/config';
 import {
   calculateAssainissementScore,
   calculateMarcheScore,
-  calculatePhase2GlobalScore,
   calculatePotentielScore,
   calculateReseauxScore,
 } from '@/lib/calculations';
@@ -49,19 +48,13 @@ export function Phase2Form({ data, onUpdate }: Phase2FormProps) {
       potentielScore,
     };
 
-    const globalScore = calculatePhase2GlobalScore(updatedData);
-
     if (
       data.assainissementScore !== assainissementScore ||
       data.reseauxScore !== reseauxScore ||
       data.marcheScore !== marcheScore ||
-      data.potentielScore !== potentielScore ||
-      data.globalScore !== globalScore
+      data.potentielScore !== potentielScore
     ) {
-      onUpdate({
-        ...updatedData,
-        globalScore,
-      });
+      onUpdate(updatedData);
     }
   }, [data, onUpdate]);
 

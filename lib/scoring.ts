@@ -51,7 +51,7 @@ export const pluZones: Record<string, { label: string; score: number }> = {
   UC: { label: "UC - Zone urbaine périphérique", score: 80 },
   AU: { label: "AU - Zone à urbaniser", score: 70 },
   A: { label: "A - Zone agricole", score: 20 },
-  N: { label: "N - Zone naturelle", score: 10 },
+  N: { label: "N - Zone naturelle", score: 15 },
 };
 
 /** Servitudes : label affiché et malus soustrait au score (base 100) */

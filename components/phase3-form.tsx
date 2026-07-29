@@ -8,7 +8,6 @@ import {
   calculateEtudesTotal,
   calculateFraisFinanciersTotal,
   calculateIndicateurs,
-  calculateFinancialScore,
   calculateTravauxTotal,
 } from '@/lib/calculations';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -46,7 +45,6 @@ export function Phase3Form({ data, onUpdate, housingCapacity }: Phase3FormProps)
       data.recettes.autresSubventions;
 
     const indicateurs = calculateIndicateurs(budgetTotal, { ...data.recettes, caTotal }, data.typeOperation);
-    const financialScore = calculateFinancialScore(indicateurs);
 
     if (
       data.depenses.travaux.totalTravaux !== totalTravaux ||
@@ -55,7 +53,6 @@ export function Phase3Form({ data, onUpdate, housingCapacity }: Phase3FormProps)
       data.depenses.autres.totalAutres !== totalAutres ||
       data.budgetTotal !== budgetTotal ||
       data.recettes.caTotal !== caTotal ||
-      data.financialScore !== financialScore ||
       JSON.stringify(data.indicateurs) !== JSON.stringify(indicateurs)
     ) {
       onUpdate({
@@ -69,7 +66,6 @@ export function Phase3Form({ data, onUpdate, housingCapacity }: Phase3FormProps)
         budgetTotal,
         recettes: { ...data.recettes, caTotal },
         indicateurs,
-        financialScore,
       });
     }
   }, [data, onUpdate]);

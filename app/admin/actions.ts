@@ -40,12 +40,13 @@ export async function sauvegarderCriteres(
 
   for (const { id, weight, config, options } of mises_a_jour) {
     // Mettre à jour le critère (poids + config)
-    const updatePayload: Record<string, unknown> = { weight };
-    if (config !== undefined) updatePayload.config = config;
+    const criteriaUpdate: { weight: number; config?: unknown } = { weight };
+    if (config !== undefined) criteriaUpdate.config = config;
 
     const { error: criteriaError } = await supabase
       .from("scoring_criteria")
-      .update(updatePayload)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .update(criteriaUpdate as any)
       .eq("id", id);
 
     if (criteriaError) {

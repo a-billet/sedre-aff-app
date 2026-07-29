@@ -8,7 +8,6 @@ import {
   calculateServitudesScore,
   calculateAccessibiliteScore,
   calculateEnvironnementScore,
-  calculatePhase1GlobalScore,
 } from '@/lib/calculations';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
@@ -38,26 +37,18 @@ export function Phase1Form({ data, onUpdate, projectInfo, onUpdateProjectInfo }:
     const accessibiliteScore = calculateAccessibiliteScore(data.accessibilite);
     const environnementScore = calculateEnvironnementScore(data.environnement);
 
-    const updatedData = {
-      ...data,
-      pluZoneScore,
-      servitudesScore,
-      accessibiliteScore,
-      environnementScore,
-    };
-
-    const globalScore = calculatePhase1GlobalScore(updatedData);
-
     if (
       data.pluZoneScore !== pluZoneScore ||
       data.servitudesScore !== servitudesScore ||
       data.accessibiliteScore !== accessibiliteScore ||
-      data.environnementScore !== environnementScore ||
-      data.globalScore !== globalScore
+      data.environnementScore !== environnementScore
     ) {
       onUpdate({
-        ...updatedData,
-        globalScore,
+        ...data,
+        pluZoneScore,
+        servitudesScore,
+        accessibiliteScore,
+        environnementScore,
       });
     }
   }, [data, onUpdate]);

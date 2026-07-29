@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
 import { Textarea } from '@/components/ui/textarea';
-import { calculateGlobalScore, generateAutoSWOT, generateRecommendation } from '@/lib/calculations';
+import { generateAutoSWOT, generateRecommendation } from '@/lib/calculations';
 import { defaultWeights, getScoreColor, getScoreLabel } from '@/lib/config';
 import { FeasibilityStudy, Phase4Data, calculateGrade, getGradeColor } from '@/lib/types';
 import {
@@ -26,21 +26,19 @@ interface Phase4SynthesisProps {
 export function Phase4Synthesis({ study, onUpdate }: Phase4SynthesisProps) {
   const { phase4 } = study;
 
-  // Calculate scores and generate SWOT on mount
+  // Génère le SWOT et la recommandation — les scores viennent de study.phase4.scoresPonderes
+  // calculés par le moteur DB dans page.tsx.
   useEffect(() => {
-    const scoresPonderes = calculateGlobalScore(study);
     const swot = generateAutoSWOT(study);
     const { recommandation, justification } = generateRecommendation(study);
 
     const needsUpdate =
-      JSON.stringify(phase4.scoresPonderes) !== JSON.stringify(scoresPonderes) ||
       phase4.recommandation !== recommandation ||
       (phase4.swot.forces.length === 0 && swot.forces.length > 0);
 
     if (needsUpdate) {
       onUpdate({
         ...phase4,
-        scoresPonderes,
         swot: phase4.swot.forces.length === 0 ? swot : phase4.swot,
         recommandation,
         justification: phase4.justification || justification,
