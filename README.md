@@ -1,6 +1,6 @@
 # sedre-aff-app
 
-SEDRE - analyse de faisabilité foncière.
+SEDRE - Analyse de faisabilité foncière.
 This is a [Next.js](https://nextjs.org) project bootstrapped with [v0](https://v0.app).
 
 ## Getting Started
