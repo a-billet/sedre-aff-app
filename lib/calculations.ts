@@ -443,7 +443,8 @@ export function generateRecommendation(study: FeasibilityStudy): {
   recommandation: "go" | "go_reserve" | "no_go";
   justification: string;
 } {
-  const globalScore = calculateGlobalScore(study).global;
+  // Utilise le score global déjà calculé (par le moteur DB ou le fallback statique).
+  const globalScore = study.phase4.scoresPonderes.global;
   const recommandation = getRecommendation(globalScore);
 
   let justification = "";

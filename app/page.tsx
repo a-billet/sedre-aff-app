@@ -1,23 +1,54 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
-import { FeasibilityStudy, Phase1Data, Phase2Data, Phase3Data, Phase4Data, ProjectInfo } from '@/lib/types';
-import { createEmptyStudy } from '@/lib/config';
-import { getStudies, saveStudy, deleteStudy, setCurrentStudyId, getCurrentStudyId, getStudy } from '@/lib/storage';
-import { StudyList } from '@/components/study-list';
-import { ProjectInfoForm } from '@/components/project-info-form';
 import { PhaseNavigation } from '@/components/phase-navigation';
 import { Phase1Form } from '@/components/phase1-form';
 import { Phase2Form } from '@/components/phase2-form';
 import { Phase3Form } from '@/components/phase3-form';
 import { Phase4Synthesis } from '@/components/phase4-synthesis';
+import { ProjectInfoForm } from '@/components/project-info-form';
+import { StudyList } from '@/components/study-list';
+import { createEmptyStudy } from '@/lib/config';
+import { calculerScore } from '@/lib/scoring/engine';
+import { buildReponsesMap } from '@/lib/scoring/study-to-reponses';
+import type { CritereConfig, ScoreResult } from '@/lib/scoring/types';
+import { deleteStudy, getCurrentStudyId, getStudies, getStudy, saveStudy, setCurrentStudyId } from '@/lib/storage';
+import { createClient } from '@/lib/supabase/client';
+import { loadCriteres } from '@/lib/supabase/load-criteres';
+import { FeasibilityStudy, Phase1Data, Phase2Data, Phase3Data, Phase4Data, ProjectInfo } from '@/lib/types';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
 export default function Page() {
   const [studies, setStudies] = useState<FeasibilityStudy[]>([]);
   const [currentStudy, setCurrentStudy] = useState<FeasibilityStudy | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [userEmail, setUserEmail] = useState<string | undefined>(undefined);
+  const [criteres, setCriteres] = useState<CritereConfig[]>([]);
 
-  // Load studies and current study from localStorage
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.auth.getUser().then(async ({ data: { user } }) => {
+      if (!user) return;
+      setUserEmail(user.email);
+      const { data: profile } = await supabase
+        .from('users')
+        .select('is_super_admin')
+        .eq('id', user.id)
+        .single();
+      if (profile?.is_super_admin) setIsAdmin(true);
+    });
+  }, []);
+
+  useEffect(() => {
+    loadCriteres().then(setCriteres);
+  }, []);
+
+  const handleLogout = async () => {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    window.location.href = '/login';
+  };
+
   useEffect(() => {
     const loadedStudies = getStudies();
     setStudies(loadedStudies);
@@ -32,7 +63,6 @@ export default function Page() {
     setIsLoading(false);
   }, []);
 
-  // Save current study whenever it changes
   const updateCurrentStudy = useCallback((study: FeasibilityStudy) => {
     setCurrentStudy(study);
     saveStudy(study);
@@ -46,6 +76,70 @@ export default function Page() {
       return [...prev, study];
     });
   }, []);
+
+  const scoringInputsKey = useMemo(() => {
+    if (!currentStudy) return '';
+    const { phase1, phase2, phase3 } = currentStudy;
+    return JSON.stringify({
+      p1: {
+        pluZone: phase1.pluZone,
+        servitudes: phase1.servitudes,
+        accessibilite: phase1.accessibilite,
+        environnement: phase1.environnement,
+      },
+      p2Fields: {
+        assainissementEU: phase2.assainissementEU,
+        assainissementEP: phase2.assainissementEP,
+        electricite: phase2.electricite,
+        telecom: phase2.telecom,
+        eauPotable: phase2.eauPotable,
+        potentiel: phase2.potentiel,
+        marche: phase2.marche,
+      },
+      p3Indicateurs: phase3.indicateurs,
+    });
+  }, [currentStudy]);
+
+  useEffect(() => {
+    if (!currentStudy || criteres.length === 0) return;
+
+    const reponses = buildReponsesMap(currentStudy, criteres);
+    const result: ScoreResult = calculerScore(reponses, criteres);
+
+    const catScore = (phase: 1 | 2 | 3): number =>
+      result.categories.find((c) => c.categorie === String(phase))?.scoreAggrege ?? 0;
+
+    const catContrib = (phase: 1 | 2 | 3): number =>
+      result.categories.find((c) => c.categorie === String(phase))?.scoreContribution ?? 0;
+
+    const p1Global = catScore(1);
+    const p2Global = catScore(2);
+    const p3Score = catScore(3);
+    const scoresPonderes: FeasibilityStudy['phase4']['scoresPonderes'] = {
+      phase1: catContrib(1),
+      phase2: catContrib(2),
+      phase3: catContrib(3),
+      global: result.scoreGlobal,
+    };
+
+    if (
+      p1Global === currentStudy.phase1.globalScore &&
+      p2Global === currentStudy.phase2.globalScore &&
+      p3Score === currentStudy.phase3.financialScore &&
+      scoresPonderes.global === currentStudy.phase4.scoresPonderes.global
+    ) {
+      return;
+    }
+
+    updateCurrentStudy({
+      ...currentStudy,
+      phase1: { ...currentStudy.phase1, globalScore: p1Global },
+      phase2: { ...currentStudy.phase2, globalScore: p2Global },
+      phase3: { ...currentStudy.phase3, financialScore: p3Score },
+      phase4: { ...currentStudy.phase4, scoresPonderes },
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scoringInputsKey, criteres, updateCurrentStudy]);
 
   const handleCreateStudy = () => {
     const newStudy = createEmptyStudy();
@@ -121,6 +215,9 @@ export default function Page() {
           onSelect={handleSelectStudy}
           onCreate={handleCreateStudy}
           onDelete={handleDeleteStudy}
+          userEmail={userEmail}
+          onLogout={handleLogout}
+          isAdmin={isAdmin}
         />
       </main>
     );

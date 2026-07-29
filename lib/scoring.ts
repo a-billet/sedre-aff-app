@@ -17,15 +17,15 @@ import type { WeightConfig } from "./types";
 
 export const defaultWeights: WeightConfig = {
   phase1: {
-    pluZone: 35,
+    pluZone: 25,
     servitudes: 25,
-    accessibilite: 20,
-    environnement: 20,
+    accessibilite: 25,
+    environnement: 25,
   },
   phase2: {
-    assainissement: 30,
+    assainissement: 25,
     reseaux: 25,
-    potentiel: 20,
+    potentiel: 25,
     marche: 25,
   },
   phase3: {
@@ -34,9 +34,9 @@ export const defaultWeights: WeightConfig = {
     ratioFoncierMax: 25, // % maximum du ratio foncier / CA
   },
   global: {
-    phase1: 25,
-    phase2: 35,
-    phase3: 40,
+    phase1: 33.3,
+    phase2: 33.3,
+    phase3: 33.4,
   },
 };
 
@@ -51,7 +51,7 @@ export const pluZones: Record<string, { label: string; score: number }> = {
   UC: { label: "UC - Zone urbaine périphérique", score: 80 },
   AU: { label: "AU - Zone à urbaniser", score: 70 },
   A: { label: "A - Zone agricole", score: 20 },
-  N: { label: "N - Zone naturelle", score: 10 },
+  N: { label: "N - Zone naturelle", score: 15 },
 };
 
 /** Servitudes : label affiché et malus soustrait au score (base 100) */
