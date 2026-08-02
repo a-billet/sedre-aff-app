@@ -12,7 +12,7 @@ import { createEmptyStudy } from '@/lib/config';
 import { calculerScore } from '@/lib/scoring/engine';
 import { buildReponsesMap } from '@/lib/scoring/study-to-reponses';
 import type { CritereConfig, ScoreResult } from '@/lib/scoring/types';
-import { deleteStudy, getCurrentStudyId, getStudies, getStudy, saveStudy, setCurrentStudyId } from '@/lib/storage';
+import { deleteStudy, getCurrentStudyId, getStudies, saveStudy, setCurrentStudyId } from '@/lib/storage';
 import { createClient } from '@/lib/supabase/client';
 import { FeasibilityStudy, Phase1Data, Phase2Data, Phase3Data, Phase4Data, ProjectInfo } from '@/lib/types';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -34,22 +34,43 @@ export default function PageClient({ criteres }: PageClientProps) {
     };
 
     useEffect(() => {
-        const loadedStudies = getStudies();
-        setStudies(loadedStudies);
+        let isMounted = true;
 
-        const currentId = getCurrentStudyId();
-        if (currentId) {
-            const study = getStudy(currentId);
-            if (study) {
-                setCurrentStudy(study);
+        const loadStudies = async () => {
+            try {
+                const loadedStudies = await getStudies();
+                if (!isMounted) return;
+
+                setStudies(loadedStudies);
+
+                const currentId = getCurrentStudyId();
+                if (currentId) {
+                    const study = loadedStudies.find((s) => s.id === currentId);
+                    if (study) {
+                        setCurrentStudy(study);
+                    }
+                }
+            } catch (error) {
+                console.error('Erreur de chargement des études:', error);
+            } finally {
+                if (isMounted) {
+                    setIsLoading(false);
+                }
             }
-        }
-        setIsLoading(false);
+        };
+
+        void loadStudies();
+
+        return () => {
+            isMounted = false;
+        };
     }, []);
 
     const updateCurrentStudy = useCallback((study: FeasibilityStudy) => {
         setCurrentStudy(study);
-        saveStudy(study);
+        void saveStudy(study).catch((error) => {
+            console.error('Erreur de sauvegarde de l\'étude:', error);
+        });
         setStudies((prev) => {
             const index = prev.findIndex((s) => s.id === study.id);
             if (index >= 0) {
@@ -129,7 +150,9 @@ export default function PageClient({ criteres }: PageClientProps) {
         const newStudy = createEmptyStudy();
         setCurrentStudy(newStudy);
         setCurrentStudyId(newStudy.id);
-        saveStudy(newStudy);
+        void saveStudy(newStudy).catch((error) => {
+            console.error('Erreur de sauvegarde de la nouvelle étude:', error);
+        });
         setStudies((prev) => [...prev, newStudy]);
     };
 
@@ -139,7 +162,9 @@ export default function PageClient({ criteres }: PageClientProps) {
     };
 
     const handleDeleteStudy = (id: string) => {
-        deleteStudy(id);
+        void deleteStudy(id).catch((error) => {
+            console.error('Erreur de suppression de l\'étude:', error);
+        });
         setStudies((prev) => prev.filter((s) => s.id !== id));
         if (currentStudy?.id === id) {
             setCurrentStudy(null);
