@@ -48,6 +48,8 @@ export interface CritereConfig {
    *  - checkbox  → { malus: number }
    */
   config?: Record<string, unknown> | null;
+  /** Commentaire libre associé au critère */
+  commentaire?: string;
   sort_order: number; // scoring_criteria.sort_order
   active: boolean;
   /** Options disponibles (depuis scoring_options) — pour types select / additive */

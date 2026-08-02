@@ -10,6 +10,7 @@ import {
     CardHeader,
     CardTitle,
 } from "@/components/ui/card";
+import { Textarea } from "@/components/ui/textarea";
 import type { Database } from "@/lib/supabase/types";
 
 type ScoringCriteriaRow = Database["public"]["Tables"]["scoring_criteria"]["Row"];
@@ -23,6 +24,7 @@ interface CritereState {
     weight: number;
     options: { id: string; key: string; label: string; score: number }[];
     config: Record<string, unknown> | null;
+    commentaire: string;
 }
 
 const PHASE_LABELS: Record<number, string> = {
@@ -34,12 +36,16 @@ const PHASE_LABELS: Record<number, string> = {
 function buildInitialState(criteria: CriteriaWithOptions[]): Record<string, CritereState> {
     const state: Record<string, CritereState> = {};
     for (const c of criteria) {
+        const config = (c.config as Record<string, unknown> | null) ?? null;
+        const commentaire = typeof config?.commentaire === "string" ? config.commentaire : "";
+
         state[c.id] = {
             weight: Number(c.weight),
             options: [...c.scoring_options]
                 .sort((a, b) => a.sort_order - b.sort_order)
                 .map((o) => ({ id: o.id, key: o.key, label: o.label, score: Number(o.score) })),
-            config: (c.config as Record<string, unknown> | null) ?? null,
+            config,
+            commentaire,
         };
     }
     return state;
@@ -94,6 +100,17 @@ export function GrilleCriteresEditor({ criteria }: { criteria: CriteriaWithOptio
         setSaved(false);
     }
 
+    function updateCommentaire(criteriaId: string, value: string) {
+        setStates((prev) => ({
+            ...prev,
+            [criteriaId]: {
+                ...prev[criteriaId],
+                commentaire: value,
+            },
+        }));
+        setSaved(false);
+    }
+
     function handleSauvegarder() {
         if (
             !confirm(
@@ -110,10 +127,15 @@ export function GrilleCriteresEditor({ criteria }: { criteria: CriteriaWithOptio
 
             const mises_a_jour = criteria.map((c) => {
                 const st = states[c.id]!;
+                const config = {
+                    ...((st.config ?? {}) as Record<string, unknown>),
+                    commentaire: st.commentaire,
+                };
+
                 return {
                     id: c.id,
                     weight: st.weight,
-                    config: c.type === "threshold" || c.type === "checkbox" ? st.config : undefined,
+                    config,
                     options: (c.type === "select" || c.type === "additive")
                         ? st.options.map((o) => ({ id: o.id, score: o.score }))
                         : [],
@@ -222,6 +244,19 @@ export function GrilleCriteresEditor({ criteria }: { criteria: CriteriaWithOptio
                                                 />
                                             </div>
                                         )}
+
+                                        <div className="space-y-1">
+                                            <p className="text-xs font-medium text-muted-foreground">
+                                                Commentaire
+                                            </p>
+                                            <Textarea
+                                                value={state.commentaire}
+                                                onChange={(e) => updateCommentaire(critere.id, e.target.value)}
+                                                placeholder="Ajoutez un commentaire pour ce critère..."
+                                                rows={2}
+                                                className="min-h-20 text-sm"
+                                            />
+                                        </div>
                                     </div>
                                 );
                             })}

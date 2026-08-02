@@ -36,23 +36,30 @@ export async function loadCriteres(): Promise<CritereConfig[]> {
 
   if (error || !data) return [];
 
-  return (data as unknown as CriteriaRow[]).map((c) => ({
-    id: c.id,
-    phase: c.phase as 1 | 2 | 3,
-    key: c.key,
-    label: c.label,
-    type: c.type as CritereConfig["type"],
-    weight: Number(c.weight),
-    config: (c.config as Record<string, unknown> | null) ?? null,
-    sort_order: c.sort_order,
-    active: c.active,
-    options: (c.scoring_options ?? [])
-      .sort((a, b) => a.sort_order - b.sort_order)
-      .map((o) => ({
-        key: o.key,
-        label: o.label,
-        score: Number(o.score),
-        sort_order: o.sort_order,
-      })),
-  }));
+  return (data as unknown as CriteriaRow[]).map((c) => {
+    const config = (c.config as Record<string, unknown> | null) ?? null;
+    const commentaire =
+      typeof config?.commentaire === "string" ? config.commentaire : undefined;
+
+    return {
+      id: c.id,
+      phase: c.phase as 1 | 2 | 3,
+      key: c.key,
+      label: c.label,
+      type: c.type as CritereConfig["type"],
+      weight: Number(c.weight),
+      config,
+      commentaire,
+      sort_order: c.sort_order,
+      active: c.active,
+      options: (c.scoring_options ?? [])
+        .sort((a, b) => a.sort_order - b.sort_order)
+        .map((o) => ({
+          key: o.key,
+          label: o.label,
+          score: Number(o.score),
+          sort_order: o.sort_order,
+        })),
+    };
+  });
 }
