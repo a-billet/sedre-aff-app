@@ -7,7 +7,6 @@ import { Progress } from '@/components/ui/progress';
 import { Textarea } from '@/components/ui/textarea';
 import { generateAutoSWOT, generateRecommendation } from '@/lib/calculations';
 import { defaultWeights, getScoreColor, getScoreLabel } from '@/lib/config';
-import { generatePDF } from "@/lib/pdf-generator";
 import { FeasibilityStudy, Phase4Data, calculateGrade, getGradeColor } from '@/lib/types';
 import {
   AlertTriangle,
@@ -89,7 +88,14 @@ export function Phase4Synthesis({ study, onUpdate }: Phase4SynthesisProps) {
         <CardHeader className="pb-2">
           <CardTitle className="flex items-center justify-between">
             <span className="text-xl">Score Global de Faisabilité</span>
-            <Button onClick={() => generatePDF(study)} variant="outline" className="gap-2">
+            <Button
+              onClick={async () => {
+                const { generatePDF } = await import('@/lib/pdf-generator');
+                generatePDF(study);
+              }}
+              variant="outline"
+              className="gap-2"
+            >
               <FileDown className="w-4 h-4" />
               Exporter PDF
             </Button>
