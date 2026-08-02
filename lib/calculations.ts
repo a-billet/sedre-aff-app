@@ -5,7 +5,7 @@ import type {
   Phase4Data,
   FeasibilityStudy,
 } from "./types";
-import { defaultWeights, getRecommendation } from "./config";
+import { getRecommendation } from "./config";
 import {
   servitudePenalties,
   criteresAccessibilite,
@@ -79,24 +79,6 @@ export function calculateEnvironnementScore(
   }
 
   return Math.min(score, 100);
-}
-
-export function calculatePhase1GlobalScore(phase1: Phase1Data): number {
-  const weights = defaultWeights.phase1;
-  const totalWeight =
-    weights.pluZone +
-    weights.servitudes +
-    weights.accessibilite +
-    weights.environnement;
-
-  const weightedScore =
-    (phase1.pluZoneScore * weights.pluZone +
-      phase1.servitudesScore * weights.servitudes +
-      phase1.accessibiliteScore * weights.accessibilite +
-      phase1.environnementScore * weights.environnement) /
-    totalWeight;
-
-  return Math.round(weightedScore);
 }
 
 // === Calculs Phase 2 ===
@@ -218,24 +200,6 @@ export function calculatePotentielScore(
   ]);
 }
 
-export function calculatePhase2GlobalScore(phase2: Phase2Data): number {
-  const weights = defaultWeights.phase2;
-  const totalWeight =
-    weights.assainissement +
-    weights.reseaux +
-    weights.potentiel +
-    weights.marche;
-
-  const weightedScore =
-    (phase2.assainissementScore * weights.assainissement +
-      phase2.reseauxScore * weights.reseaux +
-      phase2.potentielScore * weights.potentiel +
-      phase2.marcheScore * weights.marche) /
-    totalWeight;
-
-  return Math.round(weightedScore);
-}
-
 // === Calculs Phase 3 ===
 
 export function calculateTravauxTotal(
@@ -317,61 +281,10 @@ export function calculateIndicateurs(
   };
 }
 
-export function calculateFinancialScore(
-  indicateurs: Phase3Data["indicateurs"],
-): number {
-  const thresholds = defaultWeights.phase3;
-  let score = 0;
+// Le calcul des scores (phases + global + recommandation) est centralisé
+// dans lib/scoring/engine.ts pour rester aligné avec la grille DB admin.
 
-  // Score basé sur la marge promotion (50% du score)
-  if (indicateurs.margePromotionPct >= thresholds.margeMin * 1.5) score += 50;
-  else if (indicateurs.margePromotionPct >= thresholds.margeMin) score += 35;
-  else if (indicateurs.margePromotionPct >= thresholds.margeMin * 0.7)
-    score += 20;
-  else score += 5;
-
-  // Score basé sur le ROI (30% du score)
-  if (indicateurs.rentabiliteInvestissement >= thresholds.roiMin * 1.5)
-    score += 30;
-  else if (indicateurs.rentabiliteInvestissement >= thresholds.roiMin)
-    score += 20;
-  else if (indicateurs.rentabiliteInvestissement >= thresholds.roiMin * 0.7)
-    score += 10;
-  else score += 3;
-
-  // Score basé sur le ratio foncier (20% du score)
-  if (indicateurs.ratioFoncier <= thresholds.ratioFoncierMax * 0.7) score += 20;
-  else if (indicateurs.ratioFoncier <= thresholds.ratioFoncierMax) score += 15;
-  else if (indicateurs.ratioFoncier <= thresholds.ratioFoncierMax * 1.3)
-    score += 8;
-  else score += 2;
-
-  return Math.min(100, score);
-}
-
-// === Calculs Phase 4 (Synthèse) ===
-
-export function calculateGlobalScore(
-  study: FeasibilityStudy,
-): Phase4Data["scoresPonderes"] {
-  const weights = defaultWeights.global;
-  const totalWeight = weights.phase1 + weights.phase2 + weights.phase3;
-
-  const phase1Weighted = study.phase1.globalScore * weights.phase1;
-  const phase2Weighted = study.phase2.globalScore * weights.phase2;
-  const phase3Weighted = study.phase3.financialScore * weights.phase3;
-
-  const global = Math.round(
-    (phase1Weighted + phase2Weighted + phase3Weighted) / totalWeight,
-  );
-
-  return {
-    phase1: Math.round(phase1Weighted / totalWeight),
-    phase2: Math.round(phase2Weighted / totalWeight),
-    phase3: Math.round(phase3Weighted / totalWeight),
-    global,
-  };
-}
+// === Utilitaires de synthèse (Phase 4) ===
 
 export function generateAutoSWOT(study: FeasibilityStudy): Phase4Data["swot"] {
   const forces: string[] = [];

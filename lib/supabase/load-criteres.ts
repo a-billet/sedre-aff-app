@@ -1,5 +1,5 @@
-import { createClient } from "./client";
 import type { CritereConfig } from "@/lib/scoring/types";
+import { createClient } from "@/lib/supabase/server";
 
 /** Type minimal pour le résultat de la requête imbriquée Supabase. */
 type CriteriaRow = {
@@ -21,11 +21,11 @@ type CriteriaRow = {
 };
 
 /**
- * Charge tous les critères actifs depuis Supabase (scoring_criteria + scoring_options).
- * Retourne un tableau vide en cas d'erreur réseau — le scoring ne s'exécute pas sans critères.
+ * Charge tous les critères actifs depuis Supabase côté serveur.
+ * Retourne un tableau vide en cas d'erreur réseau.
  */
 export async function loadCriteres(): Promise<CritereConfig[]> {
-  const supabase = createClient();
+  const supabase = await createClient();
 
   const { data, error } = await supabase
     .from("scoring_criteria")

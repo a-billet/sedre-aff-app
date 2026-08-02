@@ -133,7 +133,7 @@ export function StudyList({ studies, onSelect, onCreate, onDelete, userEmail, on
 
           {studies.length === 0 ? (
             <Card className="rounded-[30px] border border-dashed border-border/70 bg-white/75 py-0 shadow-[0_24px_80px_-50px_rgba(15,23,42,0.35)]">
-              <CardContent className="flex min-h-[360px] flex-col items-center justify-center px-6 py-16 text-center">
+              <CardContent className="flex min-h-90 flex-col items-center justify-center px-6 py-16 text-center">
                 <div className="flex size-20 items-center justify-center rounded-3xl bg-primary/10 ring-1 ring-primary/15">
                   <FolderOpenDot className="size-10 text-primary" />
                 </div>

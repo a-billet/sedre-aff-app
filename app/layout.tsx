@@ -1,5 +1,7 @@
 import { Analytics } from '@vercel/analytics/next'
+import { AuthSessionProvider } from '@/components/auth-session-context'
 import type { Metadata } from 'next'
+import { headers } from 'next/headers'
 import { Inter } from 'next/font/google'
 import './globals.css'
 
@@ -27,15 +29,21 @@ export const metadata: Metadata = {
   },
 }
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode
 }>) {
+  const requestHeaders = await headers()
+  const userEmail = requestHeaders.get('x-user-email') ?? undefined
+  const isAdmin = requestHeaders.get('x-user-is-super-admin') === '1'
+
   return (
     <html lang="fr" className="bg-background">
       <body className={`${inter.variable} font-sans antialiased`}>
-        {children}
+        <AuthSessionProvider value={{ userEmail, isAdmin }}>
+          {children}
+        </AuthSessionProvider>
         {process.env.NODE_ENV === 'production' && <Analytics />}
       </body>
     </html>

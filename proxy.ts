@@ -16,8 +16,12 @@ export async function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
+  const requestHeaders = new Headers(request.headers);
+
   let response = NextResponse.next({
-    request,
+    request: {
+      headers: requestHeaders,
+    },
   });
 
   const supabase = createServerClient<Database>(
@@ -32,7 +36,11 @@ export async function proxy(request: NextRequest) {
           cookiesToSet.forEach(({ name, value }) =>
             request.cookies.set(name, value),
           );
-          response = NextResponse.next({ request });
+          response = NextResponse.next({
+            request: {
+              headers: requestHeaders,
+            },
+          });
           cookiesToSet.forEach(({ name, value, options }) =>
             response.cookies.set(name, value, options),
           );
@@ -54,15 +62,20 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
+  const { data: profile } = await supabase
+    .from("users")
+    .select("is_super_admin")
+    .eq("id", user.id)
+    .single();
+
+  const isSuperAdmin = Boolean(profile?.is_super_admin);
+
+  requestHeaders.set("x-user-email", user.email ?? "");
+  requestHeaders.set("x-user-is-super-admin", isSuperAdmin ? "1" : "0");
+
   // Protection de la route /admin : vérifier is_super_admin
   if (pathname.startsWith("/admin")) {
-    const { data: profile } = await supabase
-      .from("users")
-      .select("is_super_admin")
-      .eq("id", user.id)
-      .single();
-
-    if (!profile?.is_super_admin) {
+    if (!isSuperAdmin) {
       // Retour à l'accueil avec un message d'erreur
       const homeUrl = request.nextUrl.clone();
       homeUrl.pathname = "/";
@@ -71,7 +84,18 @@ export async function proxy(request: NextRequest) {
     }
   }
 
-  return response;
+  const finalResponse = NextResponse.next({
+    request: {
+      headers: requestHeaders,
+    },
+  });
+
+  // Preserve cookies potentially set by Supabase during token refresh.
+  response.cookies.getAll().forEach(({ name, value, ...options }) => {
+    finalResponse.cookies.set(name, value, options);
+  });
+
+  return finalResponse;
 }
 
 export const config = {
