@@ -62,7 +62,7 @@ export async function generatePDF(study: FeasibilityStudy): Promise<void> {
   doc.setFont("helvetica", "bold");
   doc.text("ETUDE DE FAISABILITE", pageWidth / 2, 30, { align: "center" });
   doc.setFontSize(14);
-  doc.text("Analyse fonciere et immobiliere", pageWidth / 2, 42, {
+  doc.text("Analyse foncière et immobilière", pageWidth / 2, 42, {
     align: "center",
   });
 
@@ -90,7 +90,7 @@ export async function generatePDF(study: FeasibilityStudy): Promise<void> {
   // Key metrics
   doc.setFontSize(11);
   doc.setFont("helvetica", "bold");
-  doc.text("DONNEES CLES", margin, yPos);
+  doc.text("DONNÉES CLÉS", margin, yPos);
   yPos += 8;
 
   const keyData = [
@@ -101,7 +101,7 @@ export async function generatePDF(study: FeasibilityStudy): Promise<void> {
     ["Prix acquisition", formatCurrency(study.projectInfo.acquisitionPrice)],
     [
       "Assainissement EU",
-      study.phase2.assainissementEU.raccordement || "Non renseigne",
+      study.phase2.assainissementEU.raccordement || "Non renseigné",
     ],
     ["Accord commune", study.phase2.potentiel.accordCommune ? "Oui" : "Non"],
   ];
@@ -156,173 +156,194 @@ export async function generatePDF(study: FeasibilityStudy): Promise<void> {
   doc.setFontSize(9);
   doc.setTextColor(128);
   doc.text(
-    `Etude generee le ${new Date().toLocaleDateString("fr-FR")}`,
+    `Étude générée le ${new Date().toLocaleDateString("fr-FR")}`,
     margin,
     yPos,
   );
-  doc.text("SEDRE - Etude de faisabilite fonciere", pageWidth - margin, yPos, {
+  doc.text("SEDRE - Étude de faisabilité foncière", pageWidth - margin, yPos, {
     align: "right",
   });
 
-  // === PAGE 2: Phase 1 Analysis ===
+  // === PAGE 2: Synthèse des critères (toutes étapes, sans scores) ===
   doc.addPage();
   yPos = 20;
   doc.setTextColor(0, 0, 0);
 
-  addTitle("PHASE 1 - Analyse initiale", 16);
-  addText(
-    `Score: ${study.phase1.globalScore}/100 - ${getScoreLabel(study.phase1.globalScore)}`,
-  );
-  yPos += 5;
+  addTitle("Synthèse des critères", 16);
+  yPos += 3;
 
-  // PLU Zone
-  addSubtitle("Zonage PLU");
-  addText(
-    `Zone: ${study.phase1.pluZone ? pluZoneLabels[study.phase1.pluZone] : "Non renseigne"}`,
-  );
-  addText(`Score: ${study.phase1.pluZoneScore}/100`);
-  yPos += 5;
+  type CritereRow = [string, string];
 
-  // Servitudes
-  addSubtitle("Servitudes et contraintes");
-  const servitudes = [];
-  if (study.phase1.servitudes.patrimoine)
-    servitudes.push("Protection du patrimoine (ABF)");
-  if (study.phase1.servitudes.inondation)
-    servitudes.push("Zone inondable (PPRI)");
-  if (study.phase1.servitudes.bruit) servitudes.push("Nuisances sonores");
-  if (study.phase1.servitudes.pollution) servitudes.push("Pollution des sols");
-  if (study.phase1.servitudes.autres)
-    servitudes.push(study.phase1.servitudes.autres);
+  const phase1Rows: CritereRow[] = [
+    // --- Phase 1 : Analyse initiale ---
+    [
+      "Zonage PLU",
+      study.phase1.pluZone
+        ? pluZoneLabels[study.phase1.pluZone]
+        : "Non renseigné",
+    ],
+    [
+      "Servitudes et contraintes",
+      (() => {
+        const servitudes = [];
+        if (study.phase1.servitudes.patrimoine)
+          servitudes.push("Protection du patrimoine (ABF)");
+        if (study.phase1.servitudes.inondation)
+          servitudes.push("Zone inondable (PPRI)");
+        if (study.phase1.servitudes.bruit) servitudes.push("Nuisances sonores");
+        if (study.phase1.servitudes.pollution)
+          servitudes.push("Pollution des sols");
+        if (study.phase1.servitudes.autres)
+          servitudes.push(study.phase1.servitudes.autres);
+        return servitudes.length > 0
+          ? servitudes.join(", ")
+          : "Aucune servitude identifiee";
+      })(),
+    ],
+    [
+      "Transports en commun",
+      study.phase1.accessibilite.transportEnCommun || "Non renseigné",
+    ],
+    [
+      "Axes routiers",
+      study.phase1.accessibilite.axesRoutiers || "Non renseigné",
+    ],
+    [
+      "Stationnement",
+      study.phase1.accessibilite.stationnement || "Non renseigné",
+    ],
+    [
+      "Environnement immédiat",
+      (() => {
+        const amenities = [];
+        if (study.phase1.environnement.commerces) amenities.push("Commerces");
+        if (study.phase1.environnement.ecoles) amenities.push("Ecoles");
+        if (study.phase1.environnement.sante)
+          amenities.push("Services de sante");
+        if (study.phase1.environnement.espaceVerts)
+          amenities.push("Espaces verts");
+        return amenities.length > 0
+          ? amenities.join(", ")
+          : "Aucun equipement notable";
+      })(),
+    ],
+    ...(study.phase1.environnement.nuisances
+      ? ([["Nuisances", study.phase1.environnement.nuisances]] as CritereRow[])
+      : []),
+  ];
 
-  addText(
-    servitudes.length > 0
-      ? servitudes.join(", ")
-      : "Aucune servitude identifiee",
-  );
-  addText(`Score: ${study.phase1.servitudesScore}/100`);
-  yPos += 5;
+  const phase2Rows: CritereRow[] = [
+    [
+      "Assainissement EU",
+      study.phase2.assainissementEU.raccordement || "Non renseigné",
+    ],
+    [
+      "Assainissement EP",
+      study.phase2.assainissementEP.raccordement || "Non renseigné",
+    ],
+    ["Electricité", study.phase2.electricite.desserte || "Non renseigné"],
+    ["Telecom", study.phase2.telecom.desserte || "Non renseigné"],
+    ["Eau potable", study.phase2.eauPotable.desserte || "Non renseigné"],
+    [
+      "Opération démonstratrice",
+      study.phase2.potentiel.operationDemonstratrice ? "Oui" : "Non",
+    ],
+    [
+      "Accord de la commune",
+      study.phase2.potentiel.accordCommune ? "Oui" : "Non",
+    ],
+    [
+      "Risque de contestation locale",
+      study.phase2.potentiel.risqueContestationLocale || "Non renseigné",
+    ],
+    [
+      "Demande / tension",
+      study.phase2.marche.demandeTension || "Non renseigné",
+    ],
+    [
+      "Dynamique démographique",
+      study.phase2.marche.dynamiqueDemographique || "Non renseignée",
+    ],
+    ["Concurrence", study.phase2.marche.concurrence || "Non renseignée"],
+    [
+      "Création d'emplois",
+      study.phase2.marche.creationEmplois || "Non renseignée",
+    ],
+    [
+      "Revenus des ménages",
+      study.phase2.marche.revenusMenages || "Non renseignés",
+    ],
+    [
+      "Absence de demande / offres vacantes",
+      study.phase2.marche.absenceDemandeOffresVacantes || "Non renseignée",
+    ],
+  ];
 
-  // Accessibilité
-  addSubtitle("Accessibilite");
-  addText(
-    `Transports en commun: ${study.phase1.accessibilite.transportEnCommun || "Non renseigne"}`,
-  );
-  addText(
-    `Axes routiers: ${study.phase1.accessibilite.axesRoutiers || "Non renseigne"}`,
-  );
-  addText(
-    `Stationnement: ${study.phase1.accessibilite.stationnement || "Non renseigne"}`,
-  );
-  addText(`Score: ${study.phase1.accessibiliteScore}/100`);
-  yPos += 5;
+  const phase3Rows: CritereRow[] = [
+    [
+      "Type d'opération",
+      study.phase3.typeOperation === "dap"
+        ? "Diffus / Amenagement de parcelles (DAP)"
+        : study.phase3.typeOperation === "ddd"
+          ? "Division de droits a construire (DDD)"
+          : "Non renseigné",
+    ],
+    [
+      "Capacité en logements",
+      `${study.phase3.recettes.capaciteNombreLogements} logements`,
+    ],
+  ];
 
-  // Environnement
-  addSubtitle("Environnement immediat");
-  const amenities = [];
-  if (study.phase1.environnement.commerces) amenities.push("Commerces");
-  if (study.phase1.environnement.ecoles) amenities.push("Ecoles");
-  if (study.phase1.environnement.sante) amenities.push("Services de sante");
-  if (study.phase1.environnement.espaceVerts) amenities.push("Espaces verts");
+  addSubtitle("Phase 1 - Analyse initiale");
 
-  addText(
-    amenities.length > 0 ? amenities.join(", ") : "Aucun equipement notable",
-  );
-  if (study.phase1.environnement.nuisances) {
-    addText(`Nuisances: ${study.phase1.environnement.nuisances}`);
-  }
-  addText(`Score: ${study.phase1.environnementScore}/100`);
+  autoTable(doc, {
+    startY: yPos,
+    head: [["Critère", "Réponse"]],
+    body: phase1Rows,
+    margin: { left: margin, right: margin },
+    theme: "grid",
+    styles: { fontSize: 9, cellPadding: 3 },
+    headStyles: { fillColor: [45, 90, 70], textColor: [255, 255, 255] },
+    columnStyles: {
+      0: { cellWidth: 25, fontStyle: "bold" },
+      1: { cellWidth: pageWidth - 2 * margin - 25 - 55 },
+    },
+  });
 
-  if (study.phase1.comments) {
-    yPos += 5;
-    addSubtitle("Commentaires");
-    addText(study.phase1.comments);
-  }
+  yPos =
+    (doc as jsPDF & { lastAutoTable: { finalY: number } }).lastAutoTable
+      .finalY + 15;
 
-  // === PAGE 3: Phase 2 Analysis ===
+  addSubtitle("Phase 2 - Analyse détaillée");
+
+  autoTable(doc, {
+    startY: yPos,
+    head: [["Critère", "Réponse"]],
+    body: phase2Rows,
+    margin: { left: margin, right: margin },
+    theme: "grid",
+    styles: { fontSize: 8, cellPadding: 3 },
+    headStyles: { fillColor: [45, 90, 70], textColor: [255, 255, 255] },
+    columnStyles: {
+      0: { cellWidth: 50, fontStyle: "bold" },
+      1: { cellWidth: pageWidth - 2 * margin - 50 - 55 },
+    },
+  });
+
   doc.addPage();
   yPos = 20;
+  doc.setTextColor(0, 0, 0);
 
-  addTitle("PHASE 2 - Analyse detaillee", 16);
-  addText(
-    `Score: ${study.phase2.globalScore}/100 - ${getScoreLabel(study.phase2.globalScore)}`,
-  );
-  yPos += 5;
-
-  // Assainissement
-  addSubtitle("Assainissement");
-  addText(
-    `EU: ${study.phase2.assainissementEU.raccordement || "Non renseigne"}`,
-  );
-  addText(
-    `EP: ${study.phase2.assainissementEP.raccordement || "Non renseigne"}`,
-  );
-  addText(`Score: ${study.phase2.assainissementScore}/100`);
-  yPos += 5;
-
-  // Reseaux
-  addSubtitle("Reseaux");
-  addText(
-    `Electricite: ${study.phase2.electricite.desserte || "Non renseigne"}`,
-  );
-  addText(`Telecom: ${study.phase2.telecom.desserte || "Non renseigne"}`);
-  addText(
-    `Eau potable: ${study.phase2.eauPotable.desserte || "Non renseigne"}`,
-  );
-  addText(`Score: ${study.phase2.reseauxScore}/100`);
-  yPos += 5;
-
-  // Potentiel
-  addSubtitle("Potentiel");
-  addText(
-    `Operation demonstratrice: ${study.phase2.potentiel.operationDemonstratrice ? "Oui" : "Non"}`,
-  );
-  addText(
-    `Accord de la commune: ${study.phase2.potentiel.accordCommune ? "Oui" : "Non"}`,
-  );
-  addText(
-    `Risque de contestation locale: ${study.phase2.potentiel.risqueContestationLocale || "Non renseigne"}`,
-  );
-  addText(`Score: ${study.phase2.potentielScore}/100`);
-  yPos += 5;
-
-  // Marché
-  addSubtitle("Attentes et etat du marche");
-  addText(
-    `Demande / tension: ${study.phase2.marche.demandeTension || "Non renseigne"}`,
-  );
-  addText(
-    `Dynamique demographique: ${study.phase2.marche.dynamiqueDemographique || "Non renseignee"}`,
-  );
-  addText(
-    `Concurrence: ${study.phase2.marche.concurrence || "Non renseignee"}`,
-  );
-  addText(
-    `Creation d'emplois: ${study.phase2.marche.creationEmplois || "Non renseignee"}`,
-  );
-  addText(
-    `Revenus des menages: ${study.phase2.marche.revenusMenages || "Non renseignes"}`,
-  );
-  addText(
-    `Absence de demande / offres vacantes: ${study.phase2.marche.absenceDemandeOffresVacantes || "Non renseignee"}`,
-  );
-  addText(`Score: ${study.phase2.marcheScore}/100`);
-
-  // === PAGE 4: Phase 3 Financial ===
-  doc.addPage();
-  yPos = 20;
-
-  addTitle("PHASE 3 - Analyse financiere", 16);
+  addTitle("Analyse financière", 16);
   addText(
     `Score: ${study.phase3.financialScore}/100 - ${getScoreLabel(study.phase3.financialScore)}`,
   );
-  yPos += 10;
 
   // Budget table
   const budgetData = [
     ["DEPENSES", ""],
     ["Travaux", formatCurrency(study.phase3.depenses.travaux.totalTravaux)],
-    ["Etudes", formatCurrency(study.phase3.depenses.etudes.totalEtudes)],
+    ["Études", formatCurrency(study.phase3.depenses.etudes.totalEtudes)],
     [
       "Frais financiers",
       formatCurrency(
@@ -400,7 +421,7 @@ export async function generatePDF(study: FeasibilityStudy): Promise<void> {
     `Ratio foncier: ${study.phase3.indicateurs.ratioFoncier.toFixed(1)}%`,
   );
 
-  // === PAGE 5: Synthesis ===
+  // === PAGE 6: Synthesis ===
   doc.addPage();
   yPos = 20;
 
@@ -517,6 +538,6 @@ export async function generatePDF(study: FeasibilityStudy): Promise<void> {
   }
 
   // Save PDF
-  const fileName = `SEDRE${study.projectInfo.projectName || "Etude"}_${new Date().toISOString().split("T")[0]}.pdf`;
+  const fileName = `SEDRE${study.projectInfo.projectName || "Étude"}_${new Date().toISOString().split("T")[0]}.pdf`;
   doc.save(fileName);
 }

@@ -145,7 +145,9 @@ export function Phase1Form({ data, onUpdate, projectInfo, onUpdateProjectInfo }:
               onValueChange={(value) => onUpdate({ ...data, pluZone: value as Phase1Data['pluZone'] })}
             >
               <SelectTrigger id="pluZone" className="w-full sm:w-md">
-                <SelectValue placeholder="Sélectionner une zone" />
+                <SelectValue placeholder="Sélectionner une zone">
+                  {data.pluZone ? pluZoneLabels[data.pluZone] : null}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 {Object.entries(pluZoneLabels).map(([key, label]) => (
@@ -233,7 +235,9 @@ export function Phase1Form({ data, onUpdate, projectInfo, onUpdateProjectInfo }:
                 onValueChange={(value) => updateAccessibilite('transportEnCommun', value)}
               >
                 <SelectTrigger id="transport" className="w-full sm:w-md max-w-full">
-                  <SelectValue placeholder="Sélectionner" />
+                  <SelectValue placeholder="Sélectionner">
+                    {data.accessibilite.transportEnCommun === 'excellent' ? 'Excellent (métro, tram)' : data.accessibilite.transportEnCommun === 'bon' ? 'Bon (bus fréquent)' : data.accessibilite.transportEnCommun === 'moyen' ? 'Moyen (bus)' : data.accessibilite.transportEnCommun === 'faible' ? 'Faible (peu desservi)' : null}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="excellent">Excellent (métro, tram)</SelectItem>
@@ -250,7 +254,9 @@ export function Phase1Form({ data, onUpdate, projectInfo, onUpdateProjectInfo }:
                 onValueChange={(value) => updateAccessibilite('axesRoutiers', value)}
               >
                 <SelectTrigger id="axes" className="w-full sm:w-md max-w-full">
-                  <SelectValue placeholder="Sélectionner" />
+                  <SelectValue placeholder="Sélectionner">
+                    {data.accessibilite.axesRoutiers === 'excellent' ? 'Excellent (autoroute proche)' : data.accessibilite.axesRoutiers === 'bon' ? 'Bon (nationale/départementale)' : data.accessibilite.axesRoutiers === 'moyen' ? 'Moyen (voirie communale)' : data.accessibilite.axesRoutiers === 'faible' ? 'Faible (accès difficile)' : null}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="excellent">Excellent (autoroute proche)</SelectItem>
@@ -267,7 +273,9 @@ export function Phase1Form({ data, onUpdate, projectInfo, onUpdateProjectInfo }:
                 onValueChange={(value) => updateAccessibilite('stationnement', value)}
               >
                 <SelectTrigger id="stationnement" className="w-full sm:w-md max-w-full">
-                  <SelectValue placeholder="Sélectionner" />
+                  <SelectValue placeholder="Sélectionner">
+                    {data.accessibilite.stationnement === 'facile' ? 'Facile' : data.accessibilite.stationnement === 'moyen' ? 'Moyen' : data.accessibilite.stationnement === 'difficile' ? 'Difficile' : null}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="facile">Facile</SelectItem>

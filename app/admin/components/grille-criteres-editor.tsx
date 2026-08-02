@@ -157,26 +157,10 @@ export function GrilleCriteresEditor({ criteria }: { criteria: CriteriaWithOptio
                                             <div>
                                                 <p className="font-medium text-sm">{critere.label}</p>
                                                 <p className="text-xs text-muted-foreground">
-                                                    {critere.type}
                                                     {!critere.active && (
                                                         <span className="ml-2 text-yellow-600">(inactif)</span>
                                                     )}
                                                 </p>
-                                            </div>
-                                            <div className="flex items-center gap-2">
-                                                <span className="text-xs text-muted-foreground">
-                                                    Poids
-                                                </span>
-                                                <Input
-                                                    type="number"
-                                                    min={0}
-                                                    max={100}
-                                                    value={state.weight}
-                                                    onChange={(e) =>
-                                                        updateWeight(critere.id, e.target.value)
-                                                    }
-                                                    className="w-20 h-8 text-sm"
-                                                />
                                             </div>
                                         </div>
 
@@ -245,16 +229,16 @@ export function GrilleCriteresEditor({ criteria }: { criteria: CriteriaWithOptio
                     </Card>
                 ))}
 
-            <div className="flex items-center gap-4 pt-2 pb-8">
-                <Button onClick={handleSauvegarder} disabled={isPending}>
-                    {isPending ? "Sauvegarde…" : "Sauvegarder"}
-                </Button>
+            <div className="flex items-center justify-end gap-4 pt-2 pb-8">
                 {saved && (
                     <p className="text-sm text-green-600">
                         Modifications enregistrées.
                     </p>
                 )}
                 {error && <p className="text-sm text-red-600">{error}</p>}
+                <Button onClick={handleSauvegarder} disabled={isPending}>
+                    {isPending ? "Sauvegarde…" : "Sauvegarder"}
+                </Button>
             </div>
         </div>
     );
