@@ -82,129 +82,13 @@ export function Phase4Synthesis({ study, onUpdate }: Phase4SynthesisProps) {
     return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(value);
   };
 
-  const handleExportPDF = async () => {
-    const { jsPDF } = await import('jspdf');
-    const autoTable = (await import('jspdf-autotable')).default;
-
-    const doc = new jsPDF();
-    const pageWidth = doc.internal.pageSize.getWidth();
-
-    // Title
-    doc.setFontSize(20);
-    doc.setFont('helvetica', 'bold');
-    doc.text('Etude de Faisabilite', pageWidth / 2, 20, { align: 'center' });
-
-    doc.setFontSize(14);
-    doc.setFont('helvetica', 'normal');
-    doc.text(study.projectInfo.projectName || 'Sans nom', pageWidth / 2, 30, { align: 'center' });
-
-    doc.setFontSize(10);
-    doc.text(study.projectInfo.address, pageWidth / 2, 38, { align: 'center' });
-    doc.text(`${study.projectInfo.city} - ${study.projectInfo.department}`, pageWidth / 2, 44, { align: 'center' });
-
-    // Score global
-    doc.setFontSize(16);
-    doc.setFont('helvetica', 'bold');
-    const scoreText = `Score Global: ${phase4.scoresPonderes.global}/100 (${globalGrade})`;
-    doc.text(scoreText, pageWidth / 2, 58, { align: 'center' });
-
-    // Recommendation
-    doc.setFontSize(12);
-
-    // Scores par phase
-    doc.setFontSize(14);
-    doc.setFont('helvetica', 'bold');
-    doc.text('Scores par Phase', 14, 82);
-
-    autoTable(doc, {
-      startY: 88,
-      head: [['Phase', 'Score', 'Poids', 'Score Pondere']],
-      body: [
-        ['Phase 1 - Analyse initiale', `${study.phase1.globalScore}/100`, `${defaultWeights.global.phase1}%`, `${phase4.scoresPonderes.phase1}`],
-        ['Phase 2 - Analyse detaillée', `${study.phase2.globalScore}/100`, `${defaultWeights.global.phase2}%`, `${phase4.scoresPonderes.phase2}`],
-        ['Phase 3 - Analyse financière', `${study.phase3.financialScore}/100`, `${defaultWeights.global.phase3}%`, `${phase4.scoresPonderes.phase3}`],
-        ['TOTAL', '', '100%', `${phase4.scoresPonderes.global}`],
-      ],
-      theme: 'grid',
-      headStyles: { fillColor: [34, 139, 34] },
-    });
-
-    // Synthese financiere
-    const financialY = (doc as typeof doc & { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 15;
-    doc.setFontSize(14);
-    doc.setFont('helvetica', 'bold');
-    doc.text('Synthese Financiere', 14, financialY);
-
-    autoTable(doc, {
-      startY: financialY + 6,
-      head: [['Indicateur', 'Valeur']],
-      body: [
-        ['Budget total', formatCurrency(phase4.syntheseFinanciere.investissementTotal)],
-        ['Recettes estimees', formatCurrency(phase4.syntheseFinanciere.recettesEstimees)],
-        ['Marge nette', formatCurrency(phase4.syntheseFinanciere.margeNette)],
-        ['ROI', `${phase4.syntheseFinanciere.roi.toFixed(1)}%`],
-      ],
-      theme: 'grid',
-      headStyles: { fillColor: [34, 139, 34] },
-    });
-
-    // SWOT
-    const swotY = (doc as typeof doc & { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 15;
-    doc.setFontSize(14);
-    doc.setFont('helvetica', 'bold');
-    doc.text('Analyse SWOT', 14, swotY);
-
-    autoTable(doc, {
-      startY: swotY + 6,
-      head: [['Forces', 'Faiblesses']],
-      body: [[
-        phase4.swot.forces.join('\n') || '-',
-        phase4.swot.faiblesses.join('\n') || '-',
-      ]],
-      theme: 'grid',
-      headStyles: { fillColor: [34, 139, 34] },
-      columnStyles: { 0: { cellWidth: 85 }, 1: { cellWidth: 85 } },
-    });
-
-    autoTable(doc, {
-      startY: (doc as typeof doc & { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 2,
-      head: [['Opportunites', 'Menaces']],
-      body: [[
-        phase4.swot.opportunites.join('\n') || '-',
-        phase4.swot.menaces.join('\n') || '-',
-      ]],
-      theme: 'grid',
-      headStyles: { fillColor: [34, 139, 34] },
-      columnStyles: { 0: { cellWidth: 85 }, 1: { cellWidth: 85 } },
-    });
-
-    // Justification
-    if (phase4.justification) {
-      const justifY = (doc as typeof doc & { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 15;
-      doc.setFontSize(14);
-      doc.setFont('helvetica', 'bold');
-      doc.text('Justification', 14, justifY);
-      doc.setFontSize(10);
-      doc.setFont('helvetica', 'normal');
-      const splitJustif = doc.splitTextToSize(phase4.justification, pageWidth - 28);
-      doc.text(splitJustif, 14, justifY + 8);
-    }
-
-    // Footer
-    doc.setFontSize(8);
-    doc.setFont('helvetica', 'italic');
-    doc.text(`Genere le ${new Date().toLocaleDateString('fr-FR')}`, 14, doc.internal.pageSize.getHeight() - 10);
-
-    doc.save(`faisabilite-${study.projectInfo.projectName || 'etude'}.pdf`);
-  };
-
   return (
     <div className="space-y-6">
       {/* Global Score */}
       <Card className="border-2" style={{ borderColor: getScoreColor(phase4.scoresPonderes.global) }}>
         <CardHeader className="pb-2">
           <CardTitle className="flex items-center justify-between">
-            <span className="text-xl">Score Global de Faisabilite</span>
+            <span className="text-xl">Score Global de Faisabilité</span>
             <Button onClick={() => generatePDF(study)} variant="outline" className="gap-2">
               <FileDown className="w-4 h-4" />
               Exporter PDF

@@ -1,6 +1,17 @@
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { getScoreLabel, pluZoneLabels } from "./config";
+import {
+  criteresAccessibilite,
+  criteresAssainissementEP,
+  criteresAssainissementEU,
+  criteresContestationLocale,
+  criteresEauPotable,
+  criteresEnvironnement,
+  criteresMarche,
+  criteresReseauxSecs,
+  servitudePenalties,
+} from "./scoring";
 import { FeasibilityStudy, calculateGrade } from "./types";
 
 export async function generatePDF(study: FeasibilityStudy): Promise<void> {
@@ -45,13 +56,37 @@ export async function generatePDF(study: FeasibilityStudy): Promise<void> {
     }
   };
 
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat("fr-FR", {
-      style: "currency",
-      currency: "EUR",
-      maximumFractionDigits: 0,
-    }).format(value);
+  const formatNumber = (value: number) => {
+    const safeValue = Number.isFinite(value) ? value : 0;
+    const [integerPart, decimalPart] = safeValue.toString().split(".");
+    const normalizedInteger = integerPart.replace(/^-/, "");
+    const sign = integerPart.startsWith("-") ? "-" : "";
+    const groups: string[] = [];
+
+    for (let index = normalizedInteger.length; index > 0; index -= 3) {
+      groups.unshift(normalizedInteger.slice(Math.max(0, index - 3), index));
+    }
+
+    const formattedInteger = `${sign}${groups.join(" ") || "0"}`;
+    return decimalPart !== undefined
+      ? `${formattedInteger},${decimalPart}`
+      : formattedInteger;
   };
+
+  const formatSurface = (value: number) => `${formatNumber(value)} m²`;
+
+  const formatCurrency = (value: number) => `${formatNumber(value)} €`;
+
+  const formatLabelValue = (
+    value: string | null | undefined,
+    labels?: Record<string, { label: string; score: number }>,
+  ) => {
+    if (!value) return "Non renseigné";
+    if (labels?.[value]) return labels[value].label;
+    return value;
+  };
+
+  const formatBooleanValue = (value?: boolean) => (value ? "Oui" : "Non");
 
   // === PAGE 1: Cover ===
   doc.setFillColor(45, 90, 70); // Primary green
@@ -94,16 +129,19 @@ export async function generatePDF(study: FeasibilityStudy): Promise<void> {
   yPos += 8;
 
   const keyData = [
-    [
-      "Surface terrain",
-      `${study.projectInfo.landArea.toLocaleString("fr-FR")} m²`,
-    ],
+    ["Surface terrain", formatSurface(study.projectInfo.landArea)],
     ["Prix acquisition", formatCurrency(study.projectInfo.acquisitionPrice)],
     [
       "Assainissement EU",
-      study.phase2.assainissementEU.raccordement || "Non renseigné",
+      formatLabelValue(
+        study.phase2.assainissementEU.raccordement,
+        criteresAssainissementEU,
+      ),
     ],
-    ["Accord commune", study.phase2.potentiel.accordCommune ? "Oui" : "Non"],
+    [
+      "Accord commune",
+      formatBooleanValue(study.phase2.potentiel.accordCommune),
+    ],
   ];
 
   autoTable(doc, {
@@ -112,7 +150,7 @@ export async function generatePDF(study: FeasibilityStudy): Promise<void> {
     body: keyData,
     margin: { left: margin },
     theme: "plain",
-    styles: { fontSize: 10 },
+    styles: { fontSize: 10, fontStyle: "normal" },
     columnStyles: {
       0: { fontStyle: "bold", cellWidth: 60 },
       1: { cellWidth: 60 },
@@ -187,12 +225,13 @@ export async function generatePDF(study: FeasibilityStudy): Promise<void> {
       (() => {
         const servitudes = [];
         if (study.phase1.servitudes.patrimoine)
-          servitudes.push("Protection du patrimoine (ABF)");
+          servitudes.push(servitudePenalties.patrimoine.label);
         if (study.phase1.servitudes.inondation)
-          servitudes.push("Zone inondable (PPRI)");
-        if (study.phase1.servitudes.bruit) servitudes.push("Nuisances sonores");
+          servitudes.push(servitudePenalties.inondation.label);
+        if (study.phase1.servitudes.bruit)
+          servitudes.push(servitudePenalties.bruit.label);
         if (study.phase1.servitudes.pollution)
-          servitudes.push("Pollution des sols");
+          servitudes.push(servitudePenalties.pollution.label);
         if (study.phase1.servitudes.autres)
           servitudes.push(study.phase1.servitudes.autres);
         return servitudes.length > 0
@@ -202,26 +241,37 @@ export async function generatePDF(study: FeasibilityStudy): Promise<void> {
     ],
     [
       "Transports en commun",
-      study.phase1.accessibilite.transportEnCommun || "Non renseigné",
+      formatLabelValue(
+        study.phase1.accessibilite.transportEnCommun,
+        criteresAccessibilite.transportEnCommun,
+      ),
     ],
     [
       "Axes routiers",
-      study.phase1.accessibilite.axesRoutiers || "Non renseigné",
+      formatLabelValue(
+        study.phase1.accessibilite.axesRoutiers,
+        criteresAccessibilite.axesRoutiers,
+      ),
     ],
     [
       "Stationnement",
-      study.phase1.accessibilite.stationnement || "Non renseigné",
+      formatLabelValue(
+        study.phase1.accessibilite.stationnement,
+        criteresAccessibilite.stationnement,
+      ),
     ],
     [
       "Environnement immédiat",
       (() => {
         const amenities = [];
-        if (study.phase1.environnement.commerces) amenities.push("Commerces");
-        if (study.phase1.environnement.ecoles) amenities.push("Ecoles");
+        if (study.phase1.environnement.commerces)
+          amenities.push(criteresEnvironnement.commerces.label);
+        if (study.phase1.environnement.ecoles)
+          amenities.push(criteresEnvironnement.ecoles.label);
         if (study.phase1.environnement.sante)
-          amenities.push("Services de sante");
+          amenities.push(criteresEnvironnement.sante.label);
         if (study.phase1.environnement.espaceVerts)
-          amenities.push("Espaces verts");
+          amenities.push(criteresEnvironnement.espaceVerts.label);
         return amenities.length > 0
           ? amenities.join(", ")
           : "Aucun equipement notable";
@@ -235,47 +285,86 @@ export async function generatePDF(study: FeasibilityStudy): Promise<void> {
   const phase2Rows: CritereRow[] = [
     [
       "Assainissement EU",
-      study.phase2.assainissementEU.raccordement || "Non renseigné",
+      formatLabelValue(
+        study.phase2.assainissementEU.raccordement,
+        criteresAssainissementEU,
+      ),
     ],
     [
       "Assainissement EP",
-      study.phase2.assainissementEP.raccordement || "Non renseigné",
+      formatLabelValue(
+        study.phase2.assainissementEP.raccordement,
+        criteresAssainissementEP,
+      ),
     ],
-    ["Electricité", study.phase2.electricite.desserte || "Non renseigné"],
-    ["Telecom", study.phase2.telecom.desserte || "Non renseigné"],
-    ["Eau potable", study.phase2.eauPotable.desserte || "Non renseigné"],
+    [
+      "Electricité",
+      formatLabelValue(study.phase2.electricite.desserte, criteresReseauxSecs),
+    ],
+    [
+      "Telecom",
+      formatLabelValue(study.phase2.telecom.desserte, criteresReseauxSecs),
+    ],
+    [
+      "Eau potable",
+      formatLabelValue(study.phase2.eauPotable.desserte, criteresEauPotable),
+    ],
     [
       "Opération démonstratrice",
-      study.phase2.potentiel.operationDemonstratrice ? "Oui" : "Non",
+      formatBooleanValue(study.phase2.potentiel.operationDemonstratrice),
     ],
     [
       "Accord de la commune",
-      study.phase2.potentiel.accordCommune ? "Oui" : "Non",
+      formatBooleanValue(study.phase2.potentiel.accordCommune),
     ],
     [
       "Risque de contestation locale",
-      study.phase2.potentiel.risqueContestationLocale || "Non renseigné",
+      formatLabelValue(
+        study.phase2.potentiel.risqueContestationLocale,
+        criteresContestationLocale,
+      ),
     ],
     [
       "Demande / tension",
-      study.phase2.marche.demandeTension || "Non renseigné",
+      formatLabelValue(
+        study.phase2.marche.demandeTension,
+        criteresMarche.demandeTension,
+      ),
     ],
     [
       "Dynamique démographique",
-      study.phase2.marche.dynamiqueDemographique || "Non renseignée",
+      formatLabelValue(
+        study.phase2.marche.dynamiqueDemographique,
+        criteresMarche.dynamiqueDemographique,
+      ),
     ],
-    ["Concurrence", study.phase2.marche.concurrence || "Non renseignée"],
+    [
+      "Concurrence",
+      formatLabelValue(
+        study.phase2.marche.concurrence,
+        criteresMarche.concurrence,
+      ),
+    ],
     [
       "Création d'emplois",
-      study.phase2.marche.creationEmplois || "Non renseignée",
+      formatLabelValue(
+        study.phase2.marche.creationEmplois,
+        criteresMarche.creationEmplois,
+      ),
     ],
     [
       "Revenus des ménages",
-      study.phase2.marche.revenusMenages || "Non renseignés",
+      formatLabelValue(
+        study.phase2.marche.revenusMenages,
+        criteresMarche.revenusMenages,
+      ),
     ],
     [
       "Absence de demande / offres vacantes",
-      study.phase2.marche.absenceDemandeOffresVacantes || "Non renseignée",
+      formatLabelValue(
+        study.phase2.marche.absenceDemandeOffresVacantes,
+        criteresMarche.absenceDemandeOffresVacantes,
+      ),
     ],
   ];
 
@@ -384,7 +473,7 @@ export async function generatePDF(study: FeasibilityStudy): Promise<void> {
     body: budgetData,
     margin: { left: margin },
     theme: "striped",
-    styles: { fontSize: 10 },
+    styles: { fontSize: 10, fontStyle: "normal" },
     columnStyles: {
       0: { cellWidth: 80 },
       1: { cellWidth: 50, halign: "right" },
