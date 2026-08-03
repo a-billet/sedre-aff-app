@@ -1,5 +1,7 @@
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import "../public/fonts/Roboto-Bold-normal.js";
+import "../public/fonts/Roboto-Regular-normal.js";
 import { getScoreLabel, pluZoneLabels } from "./config";
 import {
   criteresAccessibilite,
@@ -20,25 +22,44 @@ export async function generatePDF(study: FeasibilityStudy): Promise<void> {
   const margin = 20;
   const contentWidth = pageWidth - 2 * margin;
   let yPos = 20;
+  let pdfFontName = "helvetica";
+
+  const setPdfFont = (style: "normal" | "bold") => {
+    doc.setFont(pdfFontName, style);
+  };
+
+  // Fonts are registered by side-effect imports generated from the jsPDF font helper.
+  // We map them into one family (`Roboto`) so bold styles work in autoTable too.
+  try {
+    doc.addFont("Roboto-Regular-normal.ttf", "Roboto", "normal");
+    doc.addFont("Roboto-Bold-normal.ttf", "Roboto", "bold");
+    doc.setFont("Roboto", "normal");
+    doc.getTextWidth("Test");
+    doc.setFont("Roboto", "bold");
+    doc.getTextWidth("Test");
+    pdfFontName = "Roboto";
+  } catch {
+    pdfFontName = "helvetica";
+  }
 
   // Helper functions
   const addTitle = (text: string, size: number = 16) => {
     doc.setFontSize(size);
-    doc.setFont("helvetica", "bold");
+    setPdfFont("bold");
     doc.text(text, margin, yPos);
     yPos += size * 0.5 + 5;
   };
 
   const addSubtitle = (text: string) => {
     doc.setFontSize(12);
-    doc.setFont("helvetica", "bold");
+    setPdfFont("normal");
     doc.text(text, margin, yPos);
     yPos += 8;
   };
 
   const addText = (text: string, indent: number = 0) => {
     doc.setFontSize(10);
-    doc.setFont("helvetica", "normal");
+    setPdfFont("normal");
     const lines = doc.splitTextToSize(text, pageWidth - 2 * margin - indent);
     doc.text(lines, margin + indent, yPos);
     yPos += lines.length * 5 + 2;
@@ -89,45 +110,72 @@ export async function generatePDF(study: FeasibilityStudy): Promise<void> {
 
   const formatBooleanValue = (value?: boolean) => (value ? "Oui" : "Non");
 
+  const loadImageDataUrl = async (url: string): Promise<string | null> => {
+    try {
+      const response = await fetch(url);
+      if (!response.ok) return null;
+
+      const blob = await response.blob();
+      return await new Promise<string | null>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          resolve(typeof reader.result === "string" ? reader.result : null);
+        };
+        reader.onerror = () => reject(new Error("Impossible de lire l'image"));
+        reader.readAsDataURL(blob);
+      });
+    } catch {
+      return null;
+    }
+  };
+
   // === PAGE 1: Cover ===
-  doc.setFillColor(45, 90, 70); // Primary green
-  doc.rect(0, 0, pageWidth, 60, "F");
+  doc.setFillColor(46, 75, 133); // #2e4b85
+  doc.rect(0, 0, pageWidth, 40, "F");
+
+  const logoDataUrl = await loadImageDataUrl("/logo.jpg");
+  if (logoDataUrl) {
+    const logoSize = 20;
+    const logoX = margin;
+    const logoY = 8;
+
+    doc.setFillColor(255, 255, 255);
+    doc.roundedRect(
+      logoX - 1.5,
+      logoY - 1.5,
+      logoSize + 3,
+      logoSize + 3,
+      2.5,
+      2.5,
+      "F",
+    );
+    doc.addImage(logoDataUrl, "JPEG", logoX, logoY, logoSize, logoSize);
+  }
 
   doc.setTextColor(255, 255, 255);
-  doc.setFontSize(24);
-  doc.setFont("helvetica", "bold");
-  doc.text("ETUDE DE FAISABILITÉ", pageWidth / 2, 30, { align: "center" });
-  doc.setFontSize(14);
-  doc.text("Analyse foncière et immobilière", pageWidth / 2, 42, {
-    align: "center",
-  });
+  doc.setFontSize(22);
+  setPdfFont("normal");
+  const headerTextX = margin + 28;
+  doc.text("ÉTUDE DE FAISABILITÉ", headerTextX, 18);
+  doc.setFontSize(12);
+  doc.text("Analyse foncière et immobilière", headerTextX, 28);
 
   doc.setTextColor(0, 0, 0);
-  yPos = 80;
+  yPos = 56;
 
-  // Project info
-  addTitle(study.projectInfo.projectName || "Projet sans nom", 18);
-  yPos += 1;
+  addTitle(study.projectInfo.projectName || "Projet sans nom", 16);
+  yPos -= 2;
 
-  if (study.projectInfo.address || study.projectInfo.city) {
-    addText(`${study.projectInfo.address}, ${study.projectInfo.city}`);
-  }
-  if (study.projectInfo.department) {
-    addText(`Departement: ${study.projectInfo.department}`);
-  }
-  if (study.projectInfo.cadastralRef) {
-    addText(`Reference cadastrale: ${study.projectInfo.cadastralRef}`);
-  }
-
-  yPos += 10;
-  addLine();
-  yPos += 5;
-
-  // Key metrics
-  doc.setFontSize(11);
-  doc.setFont("helvetica", "bold");
-  doc.text("DONNÉES CLÉS", margin, yPos);
-  yPos += 8;
+  const projectData = [
+    [
+      "Adresse",
+      `${study.projectInfo.address || ""}${study.projectInfo.city ? `, ${study.projectInfo.city}` : ""}` ||
+        "Non renseigné",
+    ],
+    ["Département", study.projectInfo.department || "Non renseigné"],
+    ["Référence cadastrale", study.projectInfo.cadastralRef || "Non renseigné"],
+    ["Date du rapport", new Date().toLocaleDateString("fr-FR")],
+  ];
 
   const keyData = [
     ["Surface terrain", formatSurface(study.projectInfo.landArea)],
@@ -145,23 +193,69 @@ export async function generatePDF(study: FeasibilityStudy): Promise<void> {
     ],
   ];
 
+  const sectionTitleY = yPos + 2;
+  const columnGap = 6;
+  const columnWidth = (contentWidth - columnGap) / 2;
+  const projectColumnX = margin;
+  const keyColumnX = margin + columnWidth + columnGap;
+
+  doc.setFontSize(10);
+  setPdfFont("bold");
+  doc.text("Projet", projectColumnX, sectionTitleY);
+  doc.text("Données clés", keyColumnX, sectionTitleY);
+
+  doc.setDrawColor(220);
+  doc.setLineWidth(0.2);
+  const sectionSeparatorY = sectionTitleY + 1.8;
+  doc.line(margin, sectionSeparatorY, pageWidth - margin, sectionSeparatorY);
+
+  const tableStartY = sectionSeparatorY + 2.8;
+
   autoTable(doc, {
-    startY: yPos,
+    startY: tableStartY,
     head: [],
-    body: keyData,
-    margin: { left: margin, right: margin },
-    tableWidth: contentWidth,
+    body: projectData,
+    margin: { left: projectColumnX, right: margin + columnWidth + columnGap },
+    tableWidth: columnWidth,
     theme: "plain",
-    styles: { fontSize: 10, fontStyle: "normal" },
+    styles: {
+      font: pdfFontName,
+      fontSize: 8.8,
+      fontStyle: "normal",
+      cellPadding: { top: 1.4, right: 0, bottom: 1.4, left: 0 },
+    },
     columnStyles: {
-      0: { fontStyle: "bold", cellWidth: contentWidth * 0.42 },
-      1: { cellWidth: contentWidth * 0.58 },
+      0: { fontStyle: "bold", cellWidth: columnWidth * 0.42 },
+      1: { cellWidth: columnWidth * 0.58 },
     },
   });
 
-  yPos =
-    (doc as jsPDF & { lastAutoTable: { finalY: number } }).lastAutoTable
-      .finalY + 15;
+  const leftTableFinalY = (doc as jsPDF & { lastAutoTable: { finalY: number } })
+    .lastAutoTable.finalY;
+
+  autoTable(doc, {
+    startY: tableStartY,
+    head: [],
+    body: keyData,
+    margin: { left: keyColumnX, right: margin },
+    tableWidth: columnWidth,
+    theme: "plain",
+    styles: {
+      font: pdfFontName,
+      fontSize: 8.8,
+      fontStyle: "normal",
+      cellPadding: { top: 1.4, right: 0, bottom: 1.4, left: 0 },
+    },
+    columnStyles: {
+      0: { fontStyle: "bold", cellWidth: columnWidth * 0.46 },
+      1: { cellWidth: columnWidth * 0.54 },
+    },
+  });
+
+  const rightTableFinalY = (
+    doc as jsPDF & { lastAutoTable: { finalY: number } }
+  ).lastAutoTable.finalY;
+  yPos = Math.max(leftTableFinalY, rightTableFinalY) + 6;
 
   // Global score box
   const grade = calculateGrade(study.phase4.scoresPonderes.global);
@@ -174,21 +268,22 @@ export async function generatePDF(study: FeasibilityStudy): Promise<void> {
   };
 
   doc.setFillColor(...gradeColors[grade]);
-  doc.roundedRect(margin, yPos, pageWidth - 2 * margin, 40, 3, 3, "F");
+  doc.roundedRect(margin, yPos, pageWidth - 2 * margin, 30, 3, 3, "F");
 
   doc.setTextColor(255, 255, 255);
-  doc.setFontSize(14);
-  doc.setFont("helvetica", "bold");
-  doc.text("SCORE GLOBAL", margin + 10, yPos + 15);
-  doc.setFontSize(28);
-  doc.text(`${study.phase4.scoresPonderes.global}/100`, margin + 10, yPos + 32);
+  doc.setFontSize(12);
+  setPdfFont("bold");
+  doc.text("SCORE GLOBAL", margin + 8, yPos + 10);
+  doc.setFontSize(22);
+  doc.text(`${study.phase4.scoresPonderes.global}/100`, margin + 8, yPos + 24);
 
-  doc.setFontSize(20);
-  doc.text(`Note ${grade}`, pageWidth - margin - 40, yPos + 25);
+  doc.setFontSize(16);
+  doc.text(`Note ${grade}`, pageWidth - margin - 34, yPos + 10);
 
   doc.setTextColor(0, 0, 0);
-  yPos += 50;
+  yPos += 43;
 
+  addSubtitle("Justification");
   addText(study.phase4.justification);
 
   // Date
@@ -209,7 +304,7 @@ export async function generatePDF(study: FeasibilityStudy): Promise<void> {
   yPos = 20;
   doc.setTextColor(0, 0, 0);
 
-  addTitle("Synthèse des critères", 16);
+  addTitle("1. Synthèse des critères", 16);
   yPos += 3;
 
   type CritereRow = [string, string];
@@ -394,7 +489,7 @@ export async function generatePDF(study: FeasibilityStudy): Promise<void> {
     margin: { left: margin, right: margin },
     tableWidth: contentWidth,
     theme: "grid",
-    styles: { fontSize: 9, cellPadding: 3 },
+    styles: { font: pdfFontName, fontSize: 9, cellPadding: 3 },
     headStyles: { fillColor: [45, 90, 70], textColor: [255, 255, 255] },
     columnStyles: {
       0: { cellWidth: contentWidth * 0.3, fontStyle: "bold" },
@@ -415,7 +510,7 @@ export async function generatePDF(study: FeasibilityStudy): Promise<void> {
     margin: { left: margin, right: margin },
     tableWidth: contentWidth,
     theme: "grid",
-    styles: { fontSize: 8, cellPadding: 3 },
+    styles: { font: pdfFontName, fontSize: 8, cellPadding: 3 },
     headStyles: { fillColor: [45, 90, 70], textColor: [255, 255, 255] },
     columnStyles: {
       0: { cellWidth: contentWidth * 0.35, fontStyle: "bold" },
@@ -427,7 +522,7 @@ export async function generatePDF(study: FeasibilityStudy): Promise<void> {
   yPos = 20;
   doc.setTextColor(0, 0, 0);
 
-  addTitle("Analyse financière", 16);
+  addTitle("2. Analyse financière", 16);
   addText(
     `Score: ${study.phase3.financialScore}/100 - ${getScoreLabel(study.phase3.financialScore)}`,
   );
@@ -478,7 +573,7 @@ export async function generatePDF(study: FeasibilityStudy): Promise<void> {
     margin: { left: margin, right: margin },
     tableWidth: contentWidth,
     theme: "striped",
-    styles: { fontSize: 10, fontStyle: "normal" },
+    styles: { font: pdfFontName, fontSize: 10, fontStyle: "normal" },
     columnStyles: {
       0: { cellWidth: contentWidth * 0.65 },
       1: { cellWidth: contentWidth * 0.35, halign: "right" },
@@ -519,7 +614,7 @@ export async function generatePDF(study: FeasibilityStudy): Promise<void> {
   doc.addPage();
   yPos = 20;
 
-  addTitle("SYNTHESE ET RECOMMANDATION", 16);
+  addTitle("3. Synthèse et recommandation", 16);
   yPos += 5;
 
   // Score summary
@@ -558,7 +653,7 @@ export async function generatePDF(study: FeasibilityStudy): Promise<void> {
     margin: { left: margin, right: margin },
     tableWidth: contentWidth,
     theme: "grid",
-    styles: { fontSize: 10, halign: "center" },
+    styles: { font: pdfFontName, fontSize: 10, halign: "center" },
     headStyles: { fillColor: [45, 90, 70] },
     columnStyles: {
       0: { cellWidth: contentWidth * 0.4 },
@@ -604,7 +699,7 @@ export async function generatePDF(study: FeasibilityStudy): Promise<void> {
     margin: { left: margin, right: margin },
     tableWidth: contentWidth,
     theme: "grid",
-    styles: { fontSize: 9, cellPadding: 5 },
+    styles: { font: pdfFontName, fontSize: 9, cellPadding: 5 },
     columnStyles: {
       0: { cellWidth: contentWidth / 2 },
       1: { cellWidth: contentWidth / 2 },
@@ -640,6 +735,6 @@ export async function generatePDF(study: FeasibilityStudy): Promise<void> {
   }
 
   // Save PDF
-  const fileName = `SEDRE${study.projectInfo.projectName || "Étude"}_${new Date().toISOString().split("T")[0]}.pdf`;
+  const fileName = `SEDRE_${study.projectInfo.projectName || "Étude"}_${new Date().toISOString().split("T")[0]}.pdf`;
   doc.save(fileName);
 }
