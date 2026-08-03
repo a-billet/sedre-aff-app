@@ -313,9 +313,9 @@ export function generateAutoSWOT(study: FeasibilityStudy): Phase4Data["swot"] {
 
   // Analyse Phase 2
   if (study.phase2.marcheScore >= 70) {
-    opportunites.push("Marche local porteur");
+    opportunites.push("Marché local porteur");
   } else if (study.phase2.marcheScore < 50) {
-    menaces.push("Marche local peu favorable");
+    menaces.push("Marché local peu favorable");
   }
 
   if (study.phase2.assainissementScore >= 70) {
@@ -325,9 +325,9 @@ export function generateAutoSWOT(study: FeasibilityStudy): Phase4Data["swot"] {
   }
 
   if (study.phase2.reseauxScore >= 70) {
-    forces.push("Raccordements reseaux favorables");
+    forces.push("Raccordements réseaux favorables");
   } else if (study.phase2.reseauxScore < 50) {
-    faiblesses.push("Raccordements reseaux a renforcer");
+    faiblesses.push("Raccordements réseaux à renforcer");
   }
 
   if (study.phase2.potentielScore >= 70) {

@@ -155,7 +155,7 @@ export function Phase4Synthesis({ study, onUpdate }: Phase4SynthesisProps) {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Target className="w-5 h-5 text-primary" />
-            Synthese Financière
+            Synthèse Financière
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -283,7 +283,7 @@ export function Phase4Synthesis({ study, onUpdate }: Phase4SynthesisProps) {
       {/* Prochaines etapes */}
       <Card>
         <CardHeader>
-          <CardTitle>Prochaines etapes</CardTitle>
+          <CardTitle>Prochaines étapes</CardTitle>
           <CardDescription>Actions a mener suite a cette etude</CardDescription>
         </CardHeader>
         <CardContent>

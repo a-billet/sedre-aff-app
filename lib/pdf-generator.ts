@@ -18,6 +18,7 @@ export async function generatePDF(study: FeasibilityStudy): Promise<void> {
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
   const margin = 20;
+  const contentWidth = pageWidth - 2 * margin;
   let yPos = 20;
 
   // Helper functions
@@ -95,7 +96,7 @@ export async function generatePDF(study: FeasibilityStudy): Promise<void> {
   doc.setTextColor(255, 255, 255);
   doc.setFontSize(24);
   doc.setFont("helvetica", "bold");
-  doc.text("ETUDE DE FAISABILITE", pageWidth / 2, 30, { align: "center" });
+  doc.text("ETUDE DE FAISABILITÉ", pageWidth / 2, 30, { align: "center" });
   doc.setFontSize(14);
   doc.text("Analyse foncière et immobilière", pageWidth / 2, 42, {
     align: "center",
@@ -106,7 +107,7 @@ export async function generatePDF(study: FeasibilityStudy): Promise<void> {
 
   // Project info
   addTitle(study.projectInfo.projectName || "Projet sans nom", 18);
-  yPos += 5;
+  yPos += 1;
 
   if (study.projectInfo.address || study.projectInfo.city) {
     addText(`${study.projectInfo.address}, ${study.projectInfo.city}`);
@@ -148,12 +149,13 @@ export async function generatePDF(study: FeasibilityStudy): Promise<void> {
     startY: yPos,
     head: [],
     body: keyData,
-    margin: { left: margin },
+    margin: { left: margin, right: margin },
+    tableWidth: contentWidth,
     theme: "plain",
     styles: { fontSize: 10, fontStyle: "normal" },
     columnStyles: {
-      0: { fontStyle: "bold", cellWidth: 60 },
-      1: { cellWidth: 60 },
+      0: { fontStyle: "bold", cellWidth: contentWidth * 0.42 },
+      1: { cellWidth: contentWidth * 0.58 },
     },
   });
 
@@ -390,12 +392,13 @@ export async function generatePDF(study: FeasibilityStudy): Promise<void> {
     head: [["Critère", "Réponse"]],
     body: phase1Rows,
     margin: { left: margin, right: margin },
+    tableWidth: contentWidth,
     theme: "grid",
     styles: { fontSize: 9, cellPadding: 3 },
     headStyles: { fillColor: [45, 90, 70], textColor: [255, 255, 255] },
     columnStyles: {
-      0: { cellWidth: 25, fontStyle: "bold" },
-      1: { cellWidth: pageWidth - 2 * margin - 25 - 55 },
+      0: { cellWidth: contentWidth * 0.3, fontStyle: "bold" },
+      1: { cellWidth: contentWidth * 0.7 },
     },
   });
 
@@ -410,12 +413,13 @@ export async function generatePDF(study: FeasibilityStudy): Promise<void> {
     head: [["Critère", "Réponse"]],
     body: phase2Rows,
     margin: { left: margin, right: margin },
+    tableWidth: contentWidth,
     theme: "grid",
     styles: { fontSize: 8, cellPadding: 3 },
     headStyles: { fillColor: [45, 90, 70], textColor: [255, 255, 255] },
     columnStyles: {
-      0: { cellWidth: 50, fontStyle: "bold" },
-      1: { cellWidth: pageWidth - 2 * margin - 50 - 55 },
+      0: { cellWidth: contentWidth * 0.35, fontStyle: "bold" },
+      1: { cellWidth: contentWidth * 0.65 },
     },
   });
 
@@ -444,7 +448,7 @@ export async function generatePDF(study: FeasibilityStudy): Promise<void> {
     ["", ""],
     ["RECETTES", ""],
     [
-      "Cessions (charges foncieres)",
+      "Cessions (charges foncières)",
       formatCurrency(study.phase3.recettes.cessionsChargesFoncieres),
     ],
     ["Autres cessions", formatCurrency(study.phase3.recettes.autresCessions)],
@@ -471,12 +475,13 @@ export async function generatePDF(study: FeasibilityStudy): Promise<void> {
     startY: yPos,
     head: [],
     body: budgetData,
-    margin: { left: margin },
+    margin: { left: margin, right: margin },
+    tableWidth: contentWidth,
     theme: "striped",
     styles: { fontSize: 10, fontStyle: "normal" },
     columnStyles: {
-      0: { cellWidth: 80 },
-      1: { cellWidth: 50, halign: "right" },
+      0: { cellWidth: contentWidth * 0.65 },
+      1: { cellWidth: contentWidth * 0.35, halign: "right" },
     },
     didParseCell: (data) => {
       if (
@@ -499,15 +504,15 @@ export async function generatePDF(study: FeasibilityStudy): Promise<void> {
 
   // Indicators
   checkPageBreak(50);
-  addSubtitle("Indicateurs cles");
+  addSubtitle("Indicateurs clés");
   addText(
-    `Cout moyen par logement: ${formatCurrency(study.phase3.indicateurs.prixRevientM2)}/logement`,
+    `Coût moyen par logement : ${formatCurrency(study.phase3.indicateurs.prixRevientM2)}/logement`,
   );
   addText(
-    `Capacite: ${study.phase3.recettes.capaciteNombreLogements} logements`,
+    `Capacité : ${study.phase3.recettes.capaciteNombreLogements} logements`,
   );
   addText(
-    `Ratio foncier: ${study.phase3.indicateurs.ratioFoncier.toFixed(1)}%`,
+    `Ratio foncier : ${study.phase3.indicateurs.ratioFoncier.toFixed(1)}%`,
   );
 
   // === PAGE 6: Synthesis ===
@@ -527,13 +532,13 @@ export async function generatePDF(study: FeasibilityStudy): Promise<void> {
       `${study.phase4.scoresPonderes.phase1} pts`,
     ],
     [
-      "Phase 2 - Analyse detaillee",
+      "Phase 2 - Analyse detaillée",
       `${study.phase2.globalScore}/100`,
       "35%",
       `${study.phase4.scoresPonderes.phase2} pts`,
     ],
     [
-      "Phase 3 - Analyse financiere",
+      "Phase 3 - Analyse financière",
       `${study.phase3.financialScore}/100`,
       "40%",
       `${study.phase4.scoresPonderes.phase3} pts`,
@@ -550,10 +555,17 @@ export async function generatePDF(study: FeasibilityStudy): Promise<void> {
     startY: yPos,
     head: [scoreData[0]],
     body: scoreData.slice(1),
-    margin: { left: margin },
+    margin: { left: margin, right: margin },
+    tableWidth: contentWidth,
     theme: "grid",
     styles: { fontSize: 10, halign: "center" },
     headStyles: { fillColor: [45, 90, 70] },
+    columnStyles: {
+      0: { cellWidth: contentWidth * 0.4 },
+      1: { cellWidth: contentWidth * 0.2 },
+      2: { cellWidth: contentWidth * 0.15 },
+      3: { cellWidth: contentWidth * 0.25 },
+    },
     didParseCell: (data) => {
       if (data.row.index === 3) {
         data.cell.styles.fontStyle = "bold";
@@ -578,7 +590,7 @@ export async function generatePDF(study: FeasibilityStudy): Promise<void> {
       study.phase4.swot.forces.join("\n") || "-",
       study.phase4.swot.faiblesses.join("\n") || "-",
     ],
-    ["OPPORTUNITES", "MENACES"],
+    ["OPPORTUNITÉS", "MENACES"],
     [
       study.phase4.swot.opportunites.join("\n") || "-",
       study.phase4.swot.menaces.join("\n") || "-",
@@ -589,12 +601,13 @@ export async function generatePDF(study: FeasibilityStudy): Promise<void> {
     startY: yPos,
     head: [],
     body: swotData,
-    margin: { left: margin },
+    margin: { left: margin, right: margin },
+    tableWidth: contentWidth,
     theme: "grid",
     styles: { fontSize: 9, cellPadding: 5 },
     columnStyles: {
-      0: { cellWidth: (pageWidth - 2 * margin) / 2 },
-      1: { cellWidth: (pageWidth - 2 * margin) / 2 },
+      0: { cellWidth: contentWidth / 2 },
+      1: { cellWidth: contentWidth / 2 },
     },
     didParseCell: (data) => {
       if (data.row.index === 0 || data.row.index === 2) {
