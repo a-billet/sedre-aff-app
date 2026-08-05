@@ -59,9 +59,9 @@ const styles = StyleSheet.create({
     fontFamily: 'Roboto',
     fontSize: 9,
     color: '#000',
-    paddingTop: 20,
+    paddingTop: 40,
     paddingBottom: 30,
-    paddingHorizontal: 20,
+    paddingHorizontal: 30,
   },
   // -- Cover header --
   headerBand: {
@@ -69,11 +69,11 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     right: 0,
-    height: 56,
     backgroundColor: COLORS.primary,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 20,
+    paddingHorizontal: 30,
+    paddingVertical: 20,
   },
   logoBox: {
     width: 34,
@@ -88,7 +88,7 @@ const styles = StyleSheet.create({
   headerTitle: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
   headerSubtitle: { color: '#fff', fontSize: 9, marginTop: 2 },
 
-  title: { fontSize: 16, fontWeight: 'bold', marginBottom: 8 },
+  title: { fontSize: 16, fontWeight: 'normal', marginBottom: 8 },
   subtitle: { fontSize: 11, marginBottom: 6 },
   text: { fontSize: 9, marginBottom: 4, lineHeight: 1.4 },
 
@@ -96,7 +96,6 @@ const styles = StyleSheet.create({
   col: { flexGrow: 1, flexBasis: 0 },
   colHeader: {
     fontSize: 9,
-    fontWeight: 'bold',
     marginBottom: 3,
     borderBottomWidth: 0.5,
     borderBottomColor: COLORS.border,
@@ -233,7 +232,7 @@ function CriteriaTable({ rows }: { rows: CritereRow[] }) {
 function Footer() {
   return (
     <View style={styles.footer} fixed>
-      <Text>Étude générée le {new Date().toLocaleDateString('fr-FR')}</Text>
+      <Text>Étude générée le {new Date().toLocaleDateString('fr-FR')} à {new Date().toLocaleTimeString('fr-FR')}</Text>
       <Text>SEDRE - Étude de faisabilité foncière</Text>
     </View>
   );
@@ -260,11 +259,6 @@ function CoverPage({ study }: { study: FeasibilityStudy }) {
   const keyData: [string, string][] = [
     ['Surface terrain', formatSurface(study.projectInfo.landArea)],
     ['Prix acquisition', formatCurrency(study.projectInfo.acquisitionPrice)],
-    [
-      'Assainissement EU',
-      formatLabelValue(study.phase2.assainissementEU.raccordement, criteresAssainissementEU),
-    ],
-    ['Accord commune', formatBooleanValue(study.phase2.potentiel.accordCommune)],
   ];
 
   return (
@@ -315,6 +309,55 @@ function CoverPage({ study }: { study: FeasibilityStudy }) {
 
         <Text style={styles.subtitle}>Justification</Text>
         <Text style={styles.text}>{study.phase4.justification}</Text>
+
+        <View style={[styles.twoColRow, { marginTop: 10 }]}>
+          <View style={[styles.col, styles.table]}>
+            <Text style={[styles.tableCell, styles.tableCellBold, { backgroundColor: COLORS.stripe }]}>FORCES</Text>
+            <View style={{ padding: 4 }}>
+              {(study.phase4.swot.forces.length > 0 ? study.phase4.swot.forces : ['-']).map((item, i) => (
+                <Text key={i} style={styles.text}>
+                  • {item}
+                </Text>
+              ))}
+            </View>
+          </View>
+          <View style={[styles.col, styles.table]}>
+            <Text style={[styles.tableCell, styles.tableCellBold, { backgroundColor: COLORS.stripe }]}>
+              FAIBLESSES
+            </Text>
+            <View style={{ padding: 4 }}>
+              {(study.phase4.swot.faiblesses.length > 0 ? study.phase4.swot.faiblesses : ['-']).map((item, i) => (
+                <Text key={i} style={styles.text}>
+                  • {item}
+                </Text>
+              ))}
+            </View>
+          </View>
+        </View>
+        <View style={styles.twoColRow}>
+          <View style={[styles.col, styles.table]}>
+            <Text style={[styles.tableCell, styles.tableCellBold, { backgroundColor: COLORS.stripe }]}>
+              OPPORTUNITÉS
+            </Text>
+            <View style={{ padding: 4 }}>
+              {(study.phase4.swot.opportunites.length > 0 ? study.phase4.swot.opportunites : ['-']).map((item, i) => (
+                <Text key={i} style={styles.text}>
+                  • {item}
+                </Text>
+              ))}
+            </View>
+          </View>
+          <View style={[styles.col, styles.table]}>
+            <Text style={[styles.tableCell, styles.tableCellBold, { backgroundColor: COLORS.stripe }]}>MENACES</Text>
+            <View style={{ padding: 4 }}>
+              {(study.phase4.swot.menaces.length > 0 ? study.phase4.swot.menaces : ['-']).map((item, i) => (
+                <Text key={i} style={styles.text}>
+                  • {item}
+                </Text>
+              ))}
+            </View>
+          </View>
+        </View>
       </View>
 
       <Footer />
@@ -390,7 +433,7 @@ function CriteriaPage({ study }: { study: FeasibilityStudy }) {
 
   return (
     <Page size="A4" style={styles.page}>
-      <Text style={styles.title}>1. Synthèse des critères</Text>
+      <Text style={styles.title}>Synthèse des critères</Text>
 
       <Text style={styles.subtitle}>Phase 1 - Analyse initiale</Text>
       <CriteriaTable rows={phase1Rows} />
@@ -430,7 +473,7 @@ function FinancialPage({ study }: { study: FeasibilityStudy }) {
 
   return (
     <Page size="A4" style={styles.page}>
-      <Text style={styles.title}>2. Analyse financière</Text>
+      <Text style={styles.title}>Analyse financière</Text>
       <Text style={styles.text}>
         Score: {study.phase3.financialScore}/100 - {getScoreLabel(study.phase3.financialScore)}
       </Text>
@@ -464,7 +507,7 @@ function SynthesisPage({ study }: { study: FeasibilityStudy }) {
 
   return (
     <Page size="A4" style={styles.page}>
-      <Text style={styles.title}>3. Synthèse et recommandation</Text>
+      <Text style={styles.title}>Synthèse et recommandation</Text>
 
       <View style={styles.table}>
         <View style={[styles.tableRow, styles.tableHeaderRow]}>
