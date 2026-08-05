@@ -4,6 +4,7 @@ import { ProjectInfo } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { AddressMap } from '@/components/address-map';
 
 interface ProjectInfoFormProps {
   projectInfo: ProjectInfo;
@@ -77,6 +78,11 @@ export function ProjectInfoForm({ projectInfo, onUpdate }: ProjectInfoFormProps)
             />
           </div>
         </div>
+        <AddressMap
+          address={projectInfo.address}
+          city={projectInfo.city}
+          department={projectInfo.department}
+        />
       </CardContent>
     </Card>
   );
