@@ -1,6 +1,5 @@
 'use client';
 
-import { useAuthSession } from '@/components/auth-session-context';
 import { PhaseNavigation } from '@/components/phase-navigation';
 import { Phase1Form } from '@/components/phase1-form';
 import { Phase2Form } from '@/components/phase2-form';
@@ -13,7 +12,6 @@ import { calculerScore } from '@/lib/scoring/engine';
 import { buildReponsesMap } from '@/lib/scoring/study-to-reponses';
 import type { CritereConfig, ScoreResult } from '@/lib/scoring/types';
 import { deleteStudy, getCurrentStudyId, getGeneralAnalysisDefaults, getStudies, saveStudy, setCurrentStudyId } from '@/lib/storage';
-import { createClient } from '@/lib/supabase/client';
 import { FeasibilityStudy, GeneralAnalysisDefaults, Phase1Data, Phase2Data, Phase3Data, Phase4Data, ProjectInfo } from '@/lib/types';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
@@ -22,17 +20,10 @@ type PageClientProps = {
 };
 
 export default function PageClient({ criteres }: PageClientProps) {
-    const { userEmail, isAdmin } = useAuthSession();
     const [studies, setStudies] = useState<FeasibilityStudy[]>([]);
     const [currentStudy, setCurrentStudy] = useState<FeasibilityStudy | null>(null);
     const [generalDefaults, setGeneralDefaults] = useState<GeneralAnalysisDefaults>({});
     const [isLoading, setIsLoading] = useState(true);
-
-    const handleLogout = async () => {
-        const supabase = createClient();
-        await supabase.auth.signOut();
-        window.location.href = '/login';
-    };
 
     useEffect(() => {
         let isMounted = true;
@@ -221,7 +212,7 @@ export default function PageClient({ criteres }: PageClientProps) {
 
     if (isLoading) {
         return (
-            <main className="flex min-h-screen items-center justify-center bg-background">
+            <main className="flex min-h-screen items-center justify-center">
                 <div className="text-muted-foreground">Chargement...</div>
             </main>
         );
@@ -229,22 +220,19 @@ export default function PageClient({ criteres }: PageClientProps) {
 
     if (!currentStudy) {
         return (
-            <main className="min-h-screen bg-background">
+            <main className="min-h-screen">
                 <StudyList
                     studies={studies}
                     onSelect={handleSelectStudy}
                     onCreate={handleCreateStudy}
                     onDelete={handleDeleteStudy}
-                    userEmail={userEmail}
-                    onLogout={handleLogout}
-                    isAdmin={isAdmin}
                 />
             </main>
         );
     }
 
     return (
-        <main className="min-h-screen bg-background">
+        <main className="min-h-screen">
             <div className="mx-auto max-w-6xl px-4 py-6">
                 <header className="mb-6 flex items-center justify-between">
                     <div className="flex items-center gap-4">

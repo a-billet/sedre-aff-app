@@ -1,4 +1,5 @@
 import { Analytics } from '@vercel/analytics/next'
+import { AppShell } from '@/components/app-shell'
 import { AuthSessionProvider } from '@/components/auth-session-context'
 import type { Metadata } from 'next'
 import { headers } from 'next/headers'
@@ -42,7 +43,7 @@ export default async function RootLayout({
     <html lang="fr" className="bg-background">
       <body className={`${inter.variable} font-sans antialiased`}>
         <AuthSessionProvider value={{ userEmail, isAdmin }}>
-          {children}
+          <AppShell>{children}</AppShell>
         </AuthSessionProvider>
         {process.env.NODE_ENV === 'production' && <Analytics />}
       </body>
