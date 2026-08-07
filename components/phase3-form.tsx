@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useCallback } from 'react';
-import { Phase3Data } from '@/lib/types';
+import { GeneralAnalysisDefaults, Phase3Data } from '@/lib/types';
 import { getScoreColor, getScoreLabel, defaultWeights } from '@/lib/config';
 import {
   calculateAutresTotal,
@@ -11,6 +11,7 @@ import {
   calculateTravauxTotal,
 } from '@/lib/calculations';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -20,9 +21,10 @@ interface Phase3FormProps {
   data: Phase3Data;
   onUpdate: (data: Phase3Data) => void;
   housingCapacity: number;
+  generalDefaults?: GeneralAnalysisDefaults;
 }
 
-export function Phase3Form({ data, onUpdate, housingCapacity }: Phase3FormProps) {
+export function Phase3Form({ data, onUpdate, housingCapacity, generalDefaults }: Phase3FormProps) {
   const recettesLogement = data.typeOperation === 'dap'
     ? data.recettes.cessionsChargesFoncieres
     : data.recettes.autresCessions;
@@ -89,6 +91,25 @@ export function Phase3Form({ data, onUpdate, housingCapacity }: Phase3FormProps)
       depenses: {
         ...data.depenses,
         travaux: { ...data.depenses.travaux, [key]: value },
+      },
+    });
+  };
+
+  const applyGeneralDefaults = () => {
+    const miseEnEtatSols = generalDefaults?.miseEnEtatSols;
+
+    if (miseEnEtatSols === undefined || miseEnEtatSols === null) {
+      return;
+    }
+
+    onUpdate({
+      ...data,
+      depenses: {
+        ...data.depenses,
+        travaux: {
+          ...data.depenses.travaux,
+          miseEnEtatSols,
+        },
       },
     });
   };
@@ -219,6 +240,15 @@ export function Phase3Form({ data, onUpdate, housingCapacity }: Phase3FormProps)
               </div>
             </div>
           </div>
+
+          <Button
+            type="button"
+            variant="outline"
+            onClick={applyGeneralDefaults}
+            className="h-10 w-full rounded-xl border-dashed border-slate-300 bg-white/70 px-4 text-sm font-medium text-slate-700 hover:bg-white"
+          >
+            Appliquer les paramètres généraux
+          </Button>
 
           {/* Acquisition */}
           <Card>

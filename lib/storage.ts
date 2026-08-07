@@ -1,6 +1,6 @@
 "use client";
 
-import { FeasibilityStudy } from "@/lib/types";
+import { FeasibilityStudy, GeneralAnalysisDefaults } from "@/lib/types";
 import { createClient } from "@/lib/supabase/client";
 import type { Database, Json, StatutAnalyse } from "@/lib/supabase/types";
 import {
@@ -12,9 +12,12 @@ import {
 } from "@/lib/config";
 
 const CURRENT_STUDY_KEY = "current_study";
+const GENERAL_CRITERION_KEY = "mise_en_etat_sols";
 
 type AnalyseRow = Database["public"]["Tables"]["analyses"]["Row"];
 type FoncierRow = Database["public"]["Tables"]["fonciers"]["Row"];
+type GeneralCriterionRow =
+  Database["public"]["Tables"]["analysis_default_criteria"]["Row"];
 
 function normalizeStudy(study: FeasibilityStudy): FeasibilityStudy {
   return {
@@ -135,6 +138,24 @@ function fromDbStatus(status: StatutAnalyse): FeasibilityStudy["status"] {
   return "draft";
 }
 
+function toNumberOrNull(value: unknown): number | null {
+  if (value === null || value === undefined || value === "") return null;
+  const numberValue = typeof value === "number" ? value : Number(value);
+  return Number.isFinite(numberValue) ? numberValue : null;
+}
+
+function toGeneralDefaults(
+  rows: GeneralCriterionRow[],
+): GeneralAnalysisDefaults {
+  return rows.reduce<GeneralAnalysisDefaults>((acc, row) => {
+    acc[row.key] = row.value ?? null;
+    if (row.key === GENERAL_CRITERION_KEY) {
+      acc.miseEnEtatSols = row.value ?? null;
+    }
+    return acc;
+  }, {});
+}
+
 function toStudyFromRows(
   analyse: AnalyseRow,
   foncier: FoncierRow | null,
@@ -217,6 +238,50 @@ export async function getStudies(): Promise<FeasibilityStudy[]> {
   return analyses.map((analyse) =>
     toStudyFromRows(analyse, foncierMap.get(analyse.foncier_id) ?? null),
   );
+}
+
+export async function getGeneralAnalysisDefaults(): Promise<GeneralAnalysisDefaults> {
+  if (typeof window === "undefined") return { miseEnEtatSols: null };
+
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from("analysis_default_criteria")
+    .select("*")
+    .eq("active", true)
+    .order("sort_order");
+
+  if (error || !data) {
+    console.error(
+      "Erreur de chargement des critères généraux:",
+      error?.message,
+    );
+    return { miseEnEtatSols: null };
+  }
+
+  return toGeneralDefaults(data);
+}
+
+export async function saveGeneralAnalysisDefaultCriterion(
+  value: number | null,
+): Promise<void> {
+  if (typeof window === "undefined") return;
+
+  const supabase = createClient();
+  const { error } = await supabase.from("analysis_default_criteria").upsert(
+    {
+      key: GENERAL_CRITERION_KEY,
+      label: "Mise en état des sols",
+      value: toNumberOrNull(value),
+      sort_order: 1,
+      active: true,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "key" },
+  );
+
+  if (error) {
+    throw new Error(`Échec de sauvegarde du critère général: ${error.message}`);
+  }
 }
 
 export async function getStudy(

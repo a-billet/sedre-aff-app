@@ -219,6 +219,17 @@ export interface WeightConfig {
   };
 }
 
+export interface GeneralAnalysisCriterion {
+  id: string;
+  key: string;
+  label: string;
+  value: number | null;
+  sortOrder: number;
+  active: boolean;
+}
+
+export type GeneralAnalysisDefaults = Record<string, number | null>;
+
 // Utility functions
 export function calculateGrade(
   normalizedScore: number,

@@ -1,5 +1,6 @@
 import type {
   FeasibilityStudy,
+  GeneralAnalysisDefaults,
   Phase1Data,
   Phase2Data,
   Phase3Data,
@@ -261,13 +262,26 @@ export const initialPhase4: Phase4Data = {
   },
 };
 
-export function createEmptyStudy(): FeasibilityStudy {
+export function createEmptyStudy(
+  defaults?: GeneralAnalysisDefaults,
+): FeasibilityStudy {
   return {
     id: crypto.randomUUID(),
     projectInfo: { ...initialProjectInfo },
     phase1: { ...initialPhase1 },
     phase2: { ...initialPhase2 },
-    phase3: { ...initialPhase3 },
+    phase3: {
+      ...initialPhase3,
+      depenses: {
+        ...initialPhase3.depenses,
+        travaux: {
+          ...initialPhase3.depenses.travaux,
+          miseEnEtatSols:
+            defaults?.miseEnEtatSols ??
+            initialPhase3.depenses.travaux.miseEnEtatSols,
+        },
+      },
+    },
     phase4: { ...initialPhase4 },
     currentPhase: 1,
     lastModified: new Date().toISOString(),

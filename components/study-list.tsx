@@ -3,10 +3,12 @@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 import { FeasibilityStudy, calculateGrade, getGradeColor } from '@/lib/types';
 import { ArrowRight, Clock3, FilePlus2, FolderOpenDot, LogOut, MapPin, Settings, Trash2, UserCircle } from 'lucide-react';
 import Image from 'next/image';
-import { useEffect, useRef, useState } from 'react';
+import Link from 'next/link';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 interface StudyListProps {
   studies: FeasibilityStudy[];
@@ -20,6 +22,7 @@ interface StudyListProps {
 
 export function StudyList({ studies, onSelect, onCreate, onDelete, userEmail, onLogout, isAdmin }: StudyListProps) {
   const [profileOpen, setProfileOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
   const profileRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -44,8 +47,22 @@ export function StudyList({ studies, onSelect, onCreate, onDelete, userEmail, on
     completed: 'border-emerald-200 bg-emerald-50 text-emerald-800',
   };
 
+  const normalizedSearch = searchTerm.trim().toLowerCase();
+
+  const filteredStudies = useMemo(() => {
+    if (!normalizedSearch) {
+      return studies;
+    }
+
+    return studies.filter((study) => {
+      const projectName = study.projectInfo.projectName?.toLowerCase() ?? '';
+      const cadastralRef = study.projectInfo.cadastralRef?.toLowerCase() ?? '';
+      return projectName.includes(normalizedSearch) || cadastralRef.includes(normalizedSearch);
+    });
+  }, [normalizedSearch, studies]);
+
   return (
-    <div className="relative min-h-screen overflow-hidden bg-[radial-gradient(circle_at_top_left,_rgba(46,75,133,0.56),_transparent_32%),radial-gradient(circle_at_top_right,_rgba(59,130,246,0.12),_transparent_26%),linear-gradient(180deg,_rgba(255,255,255,0.96),_rgba(248,250,252,0.98))]">
+    <div className="relative min-h-screen overflow-hidden bg-[radial-gradient(circle_at_top_left,rgba(46,75,133,0.56),transparent_32%),radial-gradient(circle_at_top_right,rgba(59,130,246,0.12),transparent_26%),linear-gradient(180deg,rgba(255,255,255,0.96),rgba(248,250,252,0.98))]">
       <div className="absolute inset-x-0 top-0 h-80 bg-[linear-gradient(135deg,rgba(15,23,42,0.05),transparent_60%)]" />
       <div className="absolute left-1/2 top-28 h-64 w-64 -translate-x-1/2 rounded-full bg-primary/10 blur-3xl" />
 
@@ -64,22 +81,12 @@ export function StudyList({ studies, onSelect, onCreate, onDelete, userEmail, on
           </div>
 
           <div className="flex items-center gap-3">
-
-            <Button
-              onClick={onCreate}
-              size="lg"
-              className="h-11 rounded-xl px-4 text-sm shadow-[0_18px_45px_-24px_rgba(34,197,94,0.8)] hover:cursor-pointer hover:shadow-[0_24px_70px_-24px_rgba(34,197,94,0.9)]"
-            >
-              <FilePlus2 className="size-4" />
-              Nouvelle étude
-            </Button>
-
             {/* Profile dropdown */}
             <div className="relative" ref={profileRef}>
               <button
                 type="button"
                 onClick={() => setProfileOpen((o) => !o)}
-                className="flex size-11 items-center justify-center rounded-xl border border-border/60 bg-white/80 text-muted-foreground shadow-sm transition-colors hover:bg-white hover:text-foreground hover:cursor-pointer"
+                className="flex size-11 items-center justify-center rounded-xl border border-border/60 bg-slate-50/80 text-muted-foreground shadow-sm transition-colors hover:bg-white hover:text-foreground hover:cursor-pointer"
                 aria-label="Profil utilisateur"
               >
                 <UserCircle className="size-5" />
@@ -126,8 +133,34 @@ export function StudyList({ studies, onSelect, onCreate, onDelete, userEmail, on
                 Reprenez un dossier là où vous l&apos;avez laissé
               </h2>
             </div>
-            <div className="rounded-full border border-border/70 bg-white/70 px-4 py-2 text-sm text-muted-foreground backdrop-blur">
-              {studies.length} étude{studies.length > 1 ? 's' : ''}
+            <div className="flex items-center gap-3">
+              <Link
+                href="/parametres-generaux"
+                className="flex h-11 items-center gap-2 rounded-xl border border-border/60 bg-white/80 px-4 text-sm font-medium text-muted-foreground shadow-sm transition-colors hover:cursor-pointer hover:bg-white hover:text-foreground"
+              >
+                <Settings className="size-4" />
+                Paramètres généraux
+              </Link>
+              <Button
+                onClick={onCreate}
+                size="lg"
+                className="h-11 rounded-xl px-4 text-sm shadow-[0_18px_45px_-24px_rgba(34,197,94,0.8)] hover:cursor-pointer hover:shadow-[0_24px_70px_-24px_rgba(34,197,94,0.9)]"
+              >
+                <FilePlus2 className="size-4" />
+                Nouvelle étude
+              </Button>
+            </div>
+          </div>
+
+          <div className="flex flex-nowrap items-center gap-2">
+            <Input
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Rechercher par nom d'étude ou référence cadastrale"
+              className="h-11 rounded-xl border-border/70 bg-white/80"
+            />
+            <div className="inline-flex h-11 shrink-0 items-center whitespace-nowrap rounded-xl border border-border/70 bg-white/70 px-4 text-sm text-muted-foreground backdrop-blur">
+              {filteredStudies.length} étude{filteredStudies.length > 1 ? 's' : ''}
             </div>
           </div>
 
@@ -147,9 +180,18 @@ export function StudyList({ studies, onSelect, onCreate, onDelete, userEmail, on
                 </Button>
               </CardContent>
             </Card>
+          ) : filteredStudies.length === 0 ? (
+            <Card className="rounded-[30px] border border-dashed border-border/70 bg-white/75 py-0 shadow-[0_24px_80px_-50px_rgba(15,23,42,0.35)]">
+              <CardContent className="flex min-h-72 flex-col items-center justify-center px-6 py-12 text-center">
+                <h3 className="text-2xl font-semibold text-foreground">Aucune étude trouvée</h3>
+                <p className="mt-3 max-w-xl text-base leading-7 text-muted-foreground">
+                  Aucun résultat pour cette recherche. Essayez un nom de projet ou une référence cadastrale différente.
+                </p>
+              </CardContent>
+            </Card>
           ) : (
             <div className="grid gap-5 xl:grid-cols-2">
-              {studies.map((study) => {
+              {filteredStudies.map((study) => {
                 const grade = calculateGrade(study.phase4.scoresPonderes.global || 0);
                 const hasScore = study.phase4.scoresPonderes.global > 0;
 

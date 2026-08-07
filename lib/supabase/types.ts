@@ -174,6 +174,37 @@ export type Database = {
         };
         Relationships: [];
       };
+      analysis_default_criteria: {
+        Row: {
+          id: string;
+          key: string;
+          label: string;
+          value: number | null;
+          sort_order: number;
+          active: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          key: string;
+          label: string;
+          value?: number | null;
+          sort_order?: number;
+          active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          key?: string;
+          label?: string;
+          value?: number | null;
+          sort_order?: number;
+          active?: boolean;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       analyse_reponses: {
         Row: {
           id: string;

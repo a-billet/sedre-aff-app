@@ -12,9 +12,9 @@ import { createEmptyStudy } from '@/lib/config';
 import { calculerScore } from '@/lib/scoring/engine';
 import { buildReponsesMap } from '@/lib/scoring/study-to-reponses';
 import type { CritereConfig, ScoreResult } from '@/lib/scoring/types';
-import { deleteStudy, getCurrentStudyId, getStudies, saveStudy, setCurrentStudyId } from '@/lib/storage';
+import { deleteStudy, getCurrentStudyId, getGeneralAnalysisDefaults, getStudies, saveStudy, setCurrentStudyId } from '@/lib/storage';
 import { createClient } from '@/lib/supabase/client';
-import { FeasibilityStudy, Phase1Data, Phase2Data, Phase3Data, Phase4Data, ProjectInfo } from '@/lib/types';
+import { FeasibilityStudy, GeneralAnalysisDefaults, Phase1Data, Phase2Data, Phase3Data, Phase4Data, ProjectInfo } from '@/lib/types';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 type PageClientProps = {
@@ -25,6 +25,7 @@ export default function PageClient({ criteres }: PageClientProps) {
     const { userEmail, isAdmin } = useAuthSession();
     const [studies, setStudies] = useState<FeasibilityStudy[]>([]);
     const [currentStudy, setCurrentStudy] = useState<FeasibilityStudy | null>(null);
+    const [generalDefaults, setGeneralDefaults] = useState<GeneralAnalysisDefaults>({});
     const [isLoading, setIsLoading] = useState(true);
 
     const handleLogout = async () => {
@@ -38,10 +39,14 @@ export default function PageClient({ criteres }: PageClientProps) {
 
         const loadStudies = async () => {
             try {
-                const loadedStudies = await getStudies();
+                const [loadedStudies, defaults] = await Promise.all([
+                    getStudies(),
+                    getGeneralAnalysisDefaults(),
+                ]);
                 if (!isMounted) return;
 
                 setStudies(loadedStudies);
+                setGeneralDefaults(defaults);
 
                 const currentId = getCurrentStudyId();
                 if (currentId) {
@@ -147,7 +152,9 @@ export default function PageClient({ criteres }: PageClientProps) {
     }, [scoringInputsKey, criteres, updateCurrentStudy]);
 
     const handleCreateStudy = () => {
-        const newStudy = createEmptyStudy();
+        const newStudy = createEmptyStudy({
+            miseEnEtatSols: generalDefaults.miseEnEtatSols,
+        });
         setCurrentStudy(newStudy);
         setCurrentStudyId(newStudy.id);
         void saveStudy(newStudy).catch((error) => {
@@ -295,6 +302,7 @@ export default function PageClient({ criteres }: PageClientProps) {
                             data={currentStudy.phase3}
                             onUpdate={handleUpdatePhase3}
                             housingCapacity={0}
+                            generalDefaults={generalDefaults}
                         />
                     )}
                     {currentStudy.currentPhase === 4 && (
