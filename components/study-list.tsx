@@ -39,7 +39,7 @@ export function StudyList({ studies, onSelect, onCreate, onDelete, userEmail, on
   };
 
   const statusColors: Record<FeasibilityStudy['status'], string> = {
-    draft: 'border-white/60 bg-white/75 text-muted-foreground',
+    draft: 'border-gray/60 bg-white/75 text-muted-foreground',
     in_progress: 'border-amber-200 bg-amber-50 text-amber-800',
     completed: 'border-emerald-200 bg-emerald-50 text-emerald-800',
   };

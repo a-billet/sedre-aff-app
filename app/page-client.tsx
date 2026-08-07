@@ -182,9 +182,14 @@ export default function PageClient({ criteres }: PageClientProps) {
         updateCurrentStudy({ ...currentStudy, projectInfo });
     };
 
+    const handleUpdateStatus = (status: FeasibilityStudy['status']) => {
+        if (!currentStudy) return;
+        updateCurrentStudy({ ...currentStudy, status });
+    };
+
     const handleUpdatePhase1 = (phase1: Phase1Data) => {
         if (!currentStudy) return;
-        updateCurrentStudy({ ...currentStudy, phase1, status: 'in_progress' });
+        updateCurrentStudy({ ...currentStudy, phase1 });
     };
 
     const handleUpdatePhase2 = (phase2: Phase2Data) => {
@@ -199,7 +204,7 @@ export default function PageClient({ criteres }: PageClientProps) {
 
     const handleUpdatePhase4 = (phase4: Phase4Data) => {
         if (!currentStudy) return;
-        updateCurrentStudy({ ...currentStudy, phase4, status: 'completed' });
+        updateCurrentStudy({ ...currentStudy, phase4 });
     };
 
     const handleChangePhase = (phase: 1 | 2 | 3 | 4) => {
@@ -256,7 +261,9 @@ export default function PageClient({ criteres }: PageClientProps) {
 
                 <ProjectInfoForm
                     projectInfo={currentStudy.projectInfo}
+                    status={currentStudy.status}
                     onUpdate={handleUpdateProjectInfo}
+                    onStatusChange={handleUpdateStatus}
                 />
 
                 <PhaseNavigation
